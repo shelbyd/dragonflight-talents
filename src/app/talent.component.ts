@@ -29,6 +29,4 @@ export class TalentComponent {
       return 'grayscale(100%)';
     }
   }
-
-  ngOnInit() { console.log('this.talent', this.talent); }
 }

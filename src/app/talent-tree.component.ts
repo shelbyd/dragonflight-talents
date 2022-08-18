@@ -18,6 +18,7 @@ export class TalentTreeComponent {
 
   ngOnInit() {
     this.solver = TreeSolver.fromUrl(this.tree);
+    console.log('this.tree', this.tree);
   }
 
   gridColumn(cell: number): number {
@@ -30,5 +31,9 @@ export class TalentTreeComponent {
 
   onTalentClick(id: number) {
     this.solver.trySelect(id);
+  }
+
+  onTalentRightClick(id: number) {
+    this.solver.tryUnselect(id);
   }
 }

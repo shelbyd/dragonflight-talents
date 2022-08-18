@@ -23,6 +23,8 @@ export interface TalentTree {
 export interface Talent {
   cell: number;
   spells: Spell[];
+  requires: number[];
+  requiredPoints: number;
 }
 
 export interface Spell {
