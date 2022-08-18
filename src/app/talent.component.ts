@@ -1,6 +1,7 @@
 import {Component, HostBinding, Input} from '@angular/core';
 
 import {Talent} from './data.service';
+import {TreeSolver} from './tree_solver';
 
 @Component({
   selector : 'talent',
@@ -9,22 +10,25 @@ import {Talent} from './data.service';
 })
 export class TalentComponent {
   @Input('talent') talentList!: Talent[];
+  @Input() talentId!: number;
+  @Input() solver!: TreeSolver;
 
   get talent() { return this.talentList[0]; }
 
-  @HostBinding('style.background')
-  get backgroundColor() {
+  @HostBinding('style.backgroundImage')
+  get backgroundImage() {
     const ability = `https://wow.zamimg.com/images/wow/icons/large/${this.talent.spells[0].icon}.jpg`;
     const fallback = "https://wow.zamimg.com/images/wow/icons/large/inv_misc_questionmark.jpg";
     return `url("${ability}"), url("${fallback}")`;
   };
 
-  // @HostBinding('style.backgroundImage')
-  // get backgroundImage() {
-  //   return
-  //   `url("https://wow.zamimg.com/images/wow/icons/large/${this.talent.spells[0].icon}.jpg"),
-  //   url("https://wow.zamimg.com/images/wow/icons/large/inv_misc_questionmark.jpg");`;
-  // }
+  @HostBinding('style.filter') get filter() {
+    if (this.solver.isSelected(this.talentId)) {
+      return '';
+    } else {
+      return 'grayscale(100%)';
+    }
+  }
 
-  ngOnInit() { console.log('this.talent.spells', this.talent.spells); }
+  ngOnInit() { console.log('this.talent', this.talent); }
 }

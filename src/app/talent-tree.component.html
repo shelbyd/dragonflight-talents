@@ -1,6 +1,10 @@
 <talent
     *ngFor="let talentCell of tree.talents | keyvalue"
+    [talentId]="+talentCell.key"
     [talent]="talentCell.value"
+    [solver]="solver"
+
+    (click)="onTalentClick(+talentCell.key)"
 
     [style.gridColumn]="gridColumn(+talentCell.key)"
     [style.gridRow]="gridRow(+talentCell.key)"

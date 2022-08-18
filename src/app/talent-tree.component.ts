@@ -1,6 +1,7 @@
 import {Component, Input, HostBinding} from '@angular/core';
 
 import {TalentTree} from './data.service';
+import {TreeSolver} from './tree_solver';
 
 @Component({
   selector : 'talent-tree',
@@ -13,8 +14,10 @@ export class TalentTreeComponent {
   @HostBinding('style.gridTemplateColumns') columns = 17;
   @HostBinding('style.gridTemplateRows') rows = 10;
 
+  solver!: TreeSolver;
+
   ngOnInit() {
-    console.log('this.tree', this.tree);
+    this.solver = TreeSolver.fromUrl(this.tree);
   }
 
   gridColumn(cell: number): number {
@@ -23,5 +26,9 @@ export class TalentTreeComponent {
 
   gridRow(cell: number): number {
     return Math.floor(cell / this.columns) + 1;
+  }
+
+  onTalentClick(id: number) {
+    this.solver.trySelect(id);
   }
 }
