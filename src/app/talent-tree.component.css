@@ -1,0 +1,5 @@
+:host {
+  display: grid;
+
+  max-width: 800px;
+}

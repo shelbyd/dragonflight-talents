@@ -1,0 +1,8 @@
+<talent
+    *ngFor="let talentCell of tree.talents | keyvalue"
+    [talent]="talentCell.value"
+
+    [style.gridColumn]="gridColumn(+talentCell.key)"
+    [style.gridRow]="gridRow(+talentCell.key)"
+    >
+</talent>
