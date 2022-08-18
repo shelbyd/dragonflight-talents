@@ -2,12 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>DragonflightTalents</title>
+  <title>Dragonflight Talents</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <script type="text/javascript">
+    var WH = {};
+    WH.setPageData = function(id, data) {
+      WH.pageData = WH.pageData || {};
+      WH.pageData[id] = data;
+    };
+  </script>
+  <script src="https://nether.wowhead.com/data/talents-dragonflight?locale=0&dataEnv=3&dv=12&db=1660768755"></script>
+
 </head>
+
 <body>
   <app-root></app-root>
 </body>
+
 </html>
