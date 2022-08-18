@@ -23,7 +23,7 @@ export class TalentComponent {
   };
 
   @HostBinding('style.filter') get filter() {
-    if (this.solver.isSelected(this.talentId)) {
+    if (this.solver.isActive(this.talentId)) {
       return '';
     } else {
       return 'grayscale(100%)';

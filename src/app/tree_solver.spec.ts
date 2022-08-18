@@ -19,13 +19,13 @@ describe('DataService', () => {
       2 : {requires : [], points : 1},
     });
 
-    expect(solver.isSelected(1)).toBe(false);
+    expect(solver.isActive(1)).toBe(false);
   });
 
   it('after selecting root talent', () => {
     solver.trySelect(1);
 
-    expect(solver.isSelected(1)).toBe(true);
+    expect(solver.isActive(1)).toBe(true);
   });
 
   it('fails selecting a missing talent',
@@ -34,7 +34,7 @@ describe('DataService', () => {
   it('selects required talent when selecting later talent', () => {
     solver.trySelect(2);
 
-    expect(solver.isSelected(1)).toBe(true);
+    expect(solver.isActive(1)).toBe(true);
   });
 
   it('does not select when requires 2', () => {
@@ -47,15 +47,15 @@ describe('DataService', () => {
 
     solver.trySelect(3);
 
-    expect(solver.isSelected(1)).toBe(false);
-    expect(solver.isSelected(2)).toBe(false);
+    expect(solver.isActive(1)).toBe(false);
+    expect(solver.isActive(2)).toBe(false);
   });
 
   it('deselects required after deselecting later', () => {
     solver.trySelect(2);
     solver.tryUnselect(2);
 
-    expect(solver.isSelected(1)).toBe(false);
+    expect(solver.isActive(1)).toBe(false);
   });
 
   it('selects required when out of points', () => {
@@ -73,7 +73,7 @@ describe('DataService', () => {
     solver.trySelect(4);
     solver.trySelect(5);
 
-    expect(solver.isSelected(2)).toBe(true);
+    expect(solver.isActive(2)).toBe(true);
   });
 
   it('disallows picking unreachable node', () => {
@@ -87,7 +87,7 @@ describe('DataService', () => {
 
     solver.trySelect(3);
 
-    expect(solver.isSelected(3)).toBe(false);
+    expect(solver.isActive(3)).toBe(false);
   });
 
   it('uses points for automatically picking', () => {
@@ -101,10 +101,10 @@ describe('DataService', () => {
 
     solver.trySelect(2);
 
-    expect(solver.isSelected(1)).toBe(true);
+    expect(solver.isActive(1)).toBe(true);
 
-    expect(solver.isSelected(3)).toBe(false);
-    expect(solver.isSelectable(3)).toBe(false);
+    expect(solver.isActive(3)).toBe(false);
+    expect(solver.isReachable(3)).toBe(false);
   });
 
   it('uses requiredPoints for possibilities', () => {
@@ -120,6 +120,6 @@ describe('DataService', () => {
     solver.trySelect(1);
     solver.trySelect(3);
 
-    expect(solver.trySelect(4)).toBe(false);
+    expect(solver.isReachable(4)).toBe(false);
   });
 });
