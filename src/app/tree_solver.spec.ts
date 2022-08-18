@@ -11,10 +11,10 @@ describe('DataService', () => {
   };
   let solver: TreeSolver;
 
-  beforeEach(() => { solver = new TreeSolver(2, graph); });
+  beforeEach(() => { solver = TreeSolver.fromGraph(2, graph); });
 
   it('no talent is selected', () => {
-    const solver = new TreeSolver(1, {
+    const solver = TreeSolver.fromGraph(1, {
       1 : {requires : [], points : 1},
       2 : {requires : [], points : 1},
     });
@@ -43,7 +43,7 @@ describe('DataService', () => {
       2 : {requires : [], points : 1},
       3 : {requires : [ 2, 1 ], points : 1},
     };
-    const solver = new TreeSolver(2, graph);
+    const solver = TreeSolver.fromGraph(2, graph);
 
     solver.trySelect(3);
 
@@ -68,7 +68,7 @@ describe('DataService', () => {
       5 : {requires : [ 2, 3 ], points : 1},
     };
 
-    const solver = new TreeSolver(3, graph);
+    const solver = TreeSolver.fromGraph(3, graph);
 
     solver.trySelect(4);
     solver.trySelect(5);
@@ -83,7 +83,7 @@ describe('DataService', () => {
       3 : {requires : [2], points : 1},
     };
 
-    const solver = new TreeSolver(2, graph);
+    const solver = TreeSolver.fromGraph(2, graph);
 
     solver.trySelect(3);
 
@@ -97,7 +97,7 @@ describe('DataService', () => {
       3 : {requires : [1], points : 1},
     };
 
-    const solver = new TreeSolver(3, graph);
+    const solver = TreeSolver.fromGraph(3, graph);
 
     solver.trySelect(2);
 
@@ -115,7 +115,7 @@ describe('DataService', () => {
       4 : {requires : [], points : 1, requiredPoints: 2},
     };
 
-    const solver = new TreeSolver(3, graph);
+    const solver = TreeSolver.fromGraph(3, graph);
 
     solver.trySelect(1);
     solver.trySelect(3);
