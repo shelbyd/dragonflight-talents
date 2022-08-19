@@ -47,7 +47,9 @@ describe('DataService', () => {
 
     solver.trySelect(3);
 
+    console.log('Checking 1');
     expect(solver.isActive(1)).toBe(false);
+    console.log('Checking 2');
     expect(solver.isActive(2)).toBe(false);
   });
 
@@ -79,8 +81,8 @@ describe('DataService', () => {
   it('disallows picking unreachable node', () => {
     const graph = {
       1 : {requires : [], points : 1},
-      2 : {requires : [1], points : 1},
-      3 : {requires : [2], points : 1},
+      2 : {requires : [ 1 ], points : 1},
+      3 : {requires : [ 2 ], points : 1},
     };
 
     const solver = TreeSolver.fromGraph(2, graph);
@@ -93,8 +95,8 @@ describe('DataService', () => {
   it('uses points for automatically picking', () => {
     const graph = {
       1 : {requires : [], points : 2},
-      2 : {requires : [1], points : 1},
-      3 : {requires : [1], points : 1},
+      2 : {requires : [ 1 ], points : 1},
+      3 : {requires : [ 1 ], points : 1},
     };
 
     const solver = TreeSolver.fromGraph(3, graph);
@@ -111,8 +113,8 @@ describe('DataService', () => {
     const graph = {
       1 : {requires : [], points : 1},
       2 : {requires : [], points : 1},
-      3 : {requires : [], points : 1, requiredPoints: 2},
-      4 : {requires : [], points : 1, requiredPoints: 2},
+      3 : {requires : [], points : 1, requiredPoints : 2},
+      4 : {requires : [], points : 1, requiredPoints : 2},
     };
 
     const solver = TreeSolver.fromGraph(3, graph);
