@@ -1,8 +1,17 @@
 import {Memoize} from 'typescript-memoize';
 
 import {Talent, TalentTree} from './data.service';
+import {Rework} from './development_support';
 
 type Selected = Map<number, number>;
+
+const rework = (window as any).rework = {
+  'required' : new Rework('required'),
+  'allocate' : new Rework('allocate'),
+  'allocateAmount' : new Rework('allocateAmount'),
+  'reachable' : new Rework('reachable'),
+  'emplace' : new Rework('emplace'),
+};
 
 export class TreeSolver {
   constructor(
@@ -55,8 +64,9 @@ export class TreeSolver {
     if (this.ag.has(id))
       return true;
 
-    if (this.ag.isRequired(id, this.maxPoints))
+    if (this.ag.isRequired(id, this.maxPoints)) {
       return true;
+    }
 
     return false;
   }
@@ -99,6 +109,17 @@ class Graph {
 
   constructor(readonly graph: TalentGraph) {
     this.nodeIds = [...Object.keys(this.graph) ].map(n => +n);
+
+    for (const id of this.nodeIds) {
+      const node = this.get(id);
+      for (const r of node.requires) {
+        if (r >= id) {
+          throw new Error(
+              `Graph cannot have node that requires an id greater than itself ${
+                  id} requires ${r}`);
+        }
+      }
+    }
   }
 
   get(id: number): GraphNode { return this.graph[id]; }
@@ -125,7 +146,14 @@ class AllocatedGraph {
 
   public nodeIds(): number[] { return this.graph.nodeIds; }
 
-  public allocate(id: number, amount: number): AllocatedGraph {
+  private allocate(id: number, amount: number): AllocatedGraph {
+    rework['allocate'].touch(id);
+    rework['allocateAmount'].touch(amount);
+    if (this.allocation.get(id) === amount) {
+      console.warn(`Allocating the same amount (${amount}) to node ${id}`);
+      return this;
+    }
+
     const newAlloc = new Map(this.allocation);
     newAlloc.set(id, amount);
     return new AllocatedGraph(this.graph, newAlloc);
@@ -146,13 +174,14 @@ class AllocatedGraph {
   }
 
   public canHavePoints(totalPoints: number): boolean {
-    const firstValid = this.firstValid(totalPoints - this.allocatedPoints());
-    if (firstValid == null) {
+    const arbitraryValid =
+        this.arbitraryValid(totalPoints - this.allocatedPoints());
+    if (arbitraryValid == null) {
       return false;
     }
 
-    return firstValid.arbitrarilyPlacePoints(
-               totalPoints - firstValid.allocatedPoints()) != null;
+    return arbitraryValid.arbitrarilyPlacePoints(
+               totalPoints - arbitraryValid.allocatedPoints()) != null;
   }
 
   private isValid(): boolean {
@@ -163,23 +192,7 @@ class AllocatedGraph {
     if (!withoutRequiredPoints)
       return false;
 
-    const withAllocation =
-        [...this.allocation.entries() ].filter(([ _, amount ]) => amount > 0);
-
-    let allocatedPoints = 0;
-    while (true) {
-      const assignable = withAllocation.filter(
-          entry =>
-              allocatedPoints >= (this.getNode(entry[0]).requiredPoints || 0));
-      if (assignable.length === withAllocation.length)
-        return true;
-
-      const nextPoints =
-          assignable.map(entry => entry[1]).reduce((acc, v) => acc + v, 0);
-      if (nextPoints === allocatedPoints)
-        return false;
-      allocatedPoints = nextPoints;
-    }
+    return this.pointsNeededToUnlock() == null;
   }
 
   private placeablePoints(): number {
@@ -189,7 +202,7 @@ class AllocatedGraph {
         .reduce((acc, v) => acc + v, 0);
   }
 
-  private firstValid(remainingPoints: number): AllocatedGraph|null {
+  private arbitraryValid(remainingPoints: number): AllocatedGraph|null {
     if (this.isValid())
       return this;
     if (remainingPoints <= 0)
@@ -203,22 +216,29 @@ class AllocatedGraph {
       const node = this.graph.get(contributing);
       const points = Math.min(remainingPoints, node.points);
 
-      const firstValid = this.allocate(contributing, points)
-                             .firstValid(remainingPoints - points);
-      if (firstValid != null)
-        return firstValid;
+      const arbitraryValid = this.allocate(contributing, points)
+                                 .arbitraryValid(remainingPoints - points);
+      if (arbitraryValid != null)
+        return arbitraryValid;
 
       // If we can't find a valid solution with points in `contributing`, we
       // don't want to search that tree again. Setting to 0 indicates that this
       // class will not allocate to that node.
-      return this.allocate(contributing, 0).firstValid(remainingPoints);
+      return this.allocate(contributing, 0).arbitraryValid(remainingPoints);
     }
 
-    const placed = this.arbitrarilyPlacePoints(1);
-    return placed && placed.firstValid(remainingPoints - 1);
+    const needed = this.pointsNeededToUnlock();
+    if (needed == null)
+      return null;
+
+    if (needed > remainingPoints) return null;
+
+    const placed = this.arbitrarilyPlacePoints(needed);
+    return placed && placed.arbitraryValid(remainingPoints - needed);
   }
 
   private arbitrarilyPlacePoints(points: number): AllocatedGraph|null {
+    rework['emplace'].touch(points);
     let ag: AllocatedGraph = this;
     while (points > 0) {
       const incrementable = ag.nodeIds().filter(n => ag.isIncrementable(n));
@@ -234,10 +254,36 @@ class AllocatedGraph {
         if (increment > 0) {
           ag = ag.allocate(id, allocated + increment);
           points -= increment;
+        } else {
+          break;
         }
       }
     }
     return ag;
+  }
+
+  private pointsNeededToUnlock(): number|null {
+    const withAllocation =
+        [...this.allocation.entries() ].filter(([ _, amount ]) => amount > 0);
+
+    let allocatedPoints = 0;
+    while (true) {
+      const assignable = withAllocation.filter(
+          entry =>
+              allocatedPoints >= (this.getNode(entry[0]).requiredPoints || 0));
+      if (assignable.length === withAllocation.length)
+        return null;
+
+      const nextPoints =
+          assignable.map(entry => entry[1]).reduce((acc, v) => acc + v, 0);
+      if (nextPoints === allocatedPoints) {
+        const locked = withAllocation.map(entry => entry[1])
+                           .filter(amount => amount > nextPoints);
+        if (locked.length === 0) return null;
+        return Math.min(...locked);
+      }
+      allocatedPoints = nextPoints;
+    }
   }
 
   getNode(id: number): GraphNode {
@@ -249,6 +295,7 @@ class AllocatedGraph {
   }
 
   public isRequired(id: number, maxPoints: number): boolean {
+    rework['required'].touch(id);
     if (this.allocatedPoints() >= maxPoints) {
       return false;
     }
@@ -288,7 +335,7 @@ class AllocatedGraph {
       if (node === required)
         return true;
 
-      stack.push(...this.graph.get(node).requires);
+      stack.push(...(this.graph.get(node).requires.filter(l => l >= required)));
     }
     return false;
   }
@@ -311,11 +358,12 @@ class AllocatedGraph {
   public has(id: number): boolean { return (this.allocation.get(id) || 0) > 0; }
 
   public isReachable(id: number, maxPoints: number): boolean {
+    rework['reachable'].touch(id);
     if (this.allocatedPoints() >= maxPoints) {
       return (this.allocation.get(id) || 0) > 0;
     }
     const withId = this.allocate(id, 1);
-    const valid = withId.firstValid(maxPoints - withId.allocatedPoints());
+    const valid = withId.arbitraryValid(maxPoints - withId.allocatedPoints());
     return valid != null;
   }
 }
