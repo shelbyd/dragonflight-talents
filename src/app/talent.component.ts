@@ -15,18 +15,11 @@ export class TalentComponent {
 
   get talent() { return this.talentList[0]; }
 
-  @HostBinding('style.backgroundImage')
   get backgroundImage() {
-    const ability = `https://wow.zamimg.com/images/wow/icons/large/${this.talent.spells[0].icon}.jpg`;
-    const fallback = "https://wow.zamimg.com/images/wow/icons/large/inv_misc_questionmark.jpg";
+    const ability = `https://wow.zamimg.com/images/wow/icons/large/${
+        this.talent.spells[0].icon}.jpg`;
+    const fallback =
+        "https://wow.zamimg.com/images/wow/icons/large/inv_misc_questionmark.jpg";
     return `url("${ability}"), url("${fallback}")`;
   };
-
-  @HostBinding('style.filter') get filter() {
-    if (this.solver.isActive(this.talentId)) {
-      return '';
-    } else {
-      return 'grayscale(100%)';
-    }
-  }
 }

@@ -1,0 +1,10 @@
+<div
+    class="background-image"
+    [class.active]="solver.isActive(talentId)"
+    [style.backgroundImage]="backgroundImage"
+  ></div>
+
+<img
+    class="unreachable-overlay"
+    *ngIf="!solver.isReachable(talentId)"
+    src="/assets/red_x.png" />
