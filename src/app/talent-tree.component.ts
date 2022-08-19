@@ -1,6 +1,14 @@
-import {Component, Input, HostBinding} from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  HostBinding,
+  Input,
+  QueryList,
+  ViewChildren
+} from '@angular/core';
 
 import {TalentTree} from './data.service';
+import {TalentComponent} from './talent.component';
 import {TreeSolver} from './tree_solver';
 
 @Component({
@@ -14,6 +22,9 @@ export class TalentTreeComponent {
   @HostBinding('style.gridTemplateColumns') columns = 17;
   @HostBinding('style.gridTemplateRows') rows = 10;
 
+  @ViewChildren(TalentComponent) talentElements!: QueryList<TalentComponent>;
+  showConnections = false;
+
   solver!: TreeSolver;
 
   ngOnInit() {
@@ -21,19 +32,29 @@ export class TalentTreeComponent {
     console.log('this.tree', this.tree);
   }
 
-  gridColumn(cell: number): number {
-    return cell % this.columns + 1;
+  ngAfterViewInit() {
+    setTimeout(() => { this.showConnections = true; }, 0);
   }
 
-  gridRow(cell: number): number {
-    return Math.floor(cell / this.columns) + 1;
+  gridColumn(cell: number): number { return cell % this.columns + 1; }
+
+  gridRow(cell: number): number { return Math.floor(cell / this.columns) + 1; }
+
+  onTalentClick(id: number) { this.solver.trySelect(id); }
+
+  onTalentRightClick(id: number) { this.solver.tryUnselect(id); }
+
+  getElement(talentId: number): ElementRef {
+    return this.talentElements.find(el => el.talentId === talentId)!.element;
   }
 
-  onTalentClick(id: number) {
-    this.solver.trySelect(id);
+  connections(): Array<[ number, number ]> {
+    return [...Object.entries(this.tree.talents) ].flatMap(
+        ([ id, talents ]) => {
+          const talent = talents[0];
+          return talent.requires.map(r => [r, +id] as [number, number]);
+        });
   }
 
-  onTalentRightClick(id: number) {
-    this.solver.tryUnselect(id);
-  }
+  trackByIndex(i: number): number { return i; }
 }

@@ -11,3 +11,11 @@
     [style.gridRow]="gridRow(+talentCell.key)"
     >
 </talent>
+
+<ng-container *ngIf="showConnections">
+  <connection
+      *ngFor="let connection of connections(); trackBy: trackByIndex"
+      [from]="getElement(connection[0])"
+      [to]="getElement(connection[1])"
+      ></connection>
+</ng-container>

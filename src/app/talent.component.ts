@@ -1,4 +1,4 @@
-import {Component, HostBinding, Input} from '@angular/core';
+import {Component, ElementRef, HostBinding, Input} from '@angular/core';
 
 import {Talent} from './data.service';
 import {TreeSolver} from './tree_solver';
@@ -22,4 +22,6 @@ export class TalentComponent {
         "https://wow.zamimg.com/images/wow/icons/large/inv_misc_questionmark.jpg";
     return `url("${ability}"), url("${fallback}")`;
   };
+
+  constructor(readonly element: ElementRef) {}
 }

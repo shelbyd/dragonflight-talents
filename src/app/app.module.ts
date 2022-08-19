@@ -4,12 +4,14 @@ import { BrowserModule } from '@angular/platform-browser';
 import { AppComponent } from './app.component';
 import { TalentTreeComponent } from './talent-tree.component';
 import { TalentComponent } from './talent.component';
+import { ConnectionComponent } from './connection.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     TalentTreeComponent,
-    TalentComponent
+    TalentComponent,
+    ConnectionComponent
   ],
   imports: [
     BrowserModule
