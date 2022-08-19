@@ -124,4 +124,16 @@ describe('DataService', () => {
 
     expect(solver.isReachable(4)).toBe(false);
   });
+
+  it('auto activates required node', () => {
+    const graph = {
+      1 : {requires : [], points : 1},
+      2 : {requires : [1], points : 1},
+      3 : {requires : [1], points : 1},
+    };
+
+    const solver = TreeSolver.fromGraph(2, graph);
+
+    expect(solver.isActive(1)).toBe(true);
+  });
 });
