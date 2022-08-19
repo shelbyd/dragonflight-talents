@@ -197,24 +197,21 @@ class AllocatedGraph {
 
     const required = this.missingRequired();
     const contributing =
-        this.nodeIds()
-            .filter(n => this.isSelectable(n))
-            .filter(n => required.some(r => this.contributesTo(n, r)));
-    if (contributing.length > 0) {
-      const n = contributing[0];
-
-      const node = this.graph.get(n);
+        this.nodeIds().find(n => this.isSelectable(n) &&
+                                 required.some(r => this.contributesTo(n, r)));
+    if (contributing != null) {
+      const node = this.graph.get(contributing);
       const points = Math.min(remainingPoints, node.points);
 
-      const firstValid =
-          this.allocate(n, points).firstValid(remainingPoints - points);
+      const firstValid = this.allocate(contributing, points)
+                             .firstValid(remainingPoints - points);
       if (firstValid != null)
         return firstValid;
 
-      // If we can't find a valid solution with points in `n`, we don't want to
-      // search that tree again. Setting to 0 indicates that this class will not
-      // allocate to that node.
-      return this.allocate(n, 0).firstValid(remainingPoints);
+      // If we can't find a valid solution with points in `contributing`, we
+      // don't want to search that tree again. Setting to 0 indicates that this
+      // class will not allocate to that node.
+      return this.allocate(contributing, 0).firstValid(remainingPoints);
     }
 
     const placed = this.arbitrarilyPlacePoints(1);
@@ -284,9 +281,16 @@ class AllocatedGraph {
   }
 
   private contributesTo(required: number, later: number): boolean {
-    const requires = this.graph.get(later).requires;
-    return requires.includes(required) ||
-           requires.some(id => this.contributesTo(required, id));
+    const stack = [ later ];
+
+    while (stack.length > 0) {
+      const node = stack.pop()!;
+      if (node === required)
+        return true;
+
+      stack.push(...this.graph.get(node).requires);
+    }
+    return false;
   }
 
   private hasRequiredSelected(id: number): boolean {

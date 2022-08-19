@@ -47,9 +47,7 @@ describe('DataService', () => {
 
     solver.trySelect(3);
 
-    console.log('Checking 1');
     expect(solver.isActive(1)).toBe(false);
-    console.log('Checking 2');
     expect(solver.isActive(2)).toBe(false);
   });
 
