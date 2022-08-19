@@ -151,7 +151,8 @@ class AllocatedGraph {
       return false;
     }
 
-    return firstValid.arbitrarilyPlacePoints(totalPoints - firstValid.allocatedPoints()) != null;
+    return firstValid.arbitrarilyPlacePoints(
+               totalPoints - firstValid.allocatedPoints()) != null;
   }
 
   private isValid(): boolean {
@@ -162,26 +163,23 @@ class AllocatedGraph {
     if (!withoutRequiredPoints)
       return false;
 
+    const withAllocation =
+        [...this.allocation.entries() ].filter(([ _, amount ]) => amount > 0);
+
     let allocatedPoints = 0;
+    while (true) {
+      const assignable = withAllocation.filter(
+          entry =>
+              allocatedPoints >= (this.getNode(entry[0]).requiredPoints || 0));
+      if (assignable.length === withAllocation.length)
+        return true;
 
-    let unchecked = [...this.allocation.entries() ];
-    let notYetValid: Array<[ number, number ]> = [];
-    while (unchecked.length > 0) {
-      const entry = unchecked.shift()!;
-      if (entry[1] === 0)
-        continue;
-
-      const node = this.getNode(entry[0]);
-      const isAssignable = allocatedPoints >= (node.requiredPoints || 0);
-      if (isAssignable) {
-        allocatedPoints += entry[1];
-        unchecked = [...unchecked, ...notYetValid ];
-        notYetValid = [];
-      } else {
-        notYetValid.push(entry);
-      }
+      const nextPoints =
+          assignable.map(entry => entry[1]).reduce((acc, v) => acc + v, 0);
+      if (nextPoints === allocatedPoints)
+        return false;
+      allocatedPoints = nextPoints;
     }
-    return notYetValid.length === 0;
   }
 
   private placeablePoints(): number {
@@ -198,51 +196,51 @@ class AllocatedGraph {
       return null;
 
     const required = this.missingRequired();
-    for (const n of this.nodeIds()) {
-      if (!this.isSelectable(n))
-        continue;
-      if (!required.some(r => this.contributesTo(n, r)))
-        continue;
+    const contributing =
+        this.nodeIds()
+            .filter(n => this.isSelectable(n))
+            .filter(n => required.some(r => this.contributesTo(n, r)));
+    if (contributing.length > 0) {
+      const n = contributing[0];
 
       const node = this.graph.get(n);
-      const ag = this.allocate(n, node.points);
-      const firstValid = ag.firstValid(remainingPoints - node.points);
+      const points = Math.min(remainingPoints, node.points);
+
+      const firstValid =
+          this.allocate(n, points).firstValid(remainingPoints - points);
       if (firstValid != null)
         return firstValid;
+
+      // If we can't find a valid solution with points in `n`, we don't want to
+      // search that tree again. Setting to 0 indicates that this class will not
+      // allocate to that node.
+      return this.allocate(n, 0).firstValid(remainingPoints);
     }
 
-    return null;
+    const placed = this.arbitrarilyPlacePoints(1);
+    return placed && placed.firstValid(remainingPoints - 1);
   }
 
   private arbitrarilyPlacePoints(points: number): AllocatedGraph|null {
     let ag: AllocatedGraph = this;
     while (points > 0) {
-      const selectable = ag.nodeIds().filter(n => ag.isSelectable(n));
-      if (selectable.length === 0) return null;
+      const incrementable = ag.nodeIds().filter(n => ag.isIncrementable(n));
+      if (incrementable.length === 0)
+        return null;
 
-      for (const id of selectable) {
+      for (const id of incrementable) {
         const node = this.getNode(id);
-        const thisPoints = Math.min(points, node.points);
-        if (thisPoints > 0) {
-          ag = ag.allocate(id, thisPoints);
-          points -= thisPoints;
+
+        const allocated = this.allocation.get(id) || 0;
+        const increment = Math.min(points, node.points - allocated);
+
+        if (increment > 0) {
+          ag = ag.allocate(id, allocated + increment);
+          points -= increment;
         }
       }
     }
     return ag;
-  }
-
-  private withAllocated<T>(id: number, amount: number,
-                           cb: (ag: AllocatedGraph) => T): T {
-    const already = this.allocation.get(id);
-    this.allocation.set(id, amount);
-    const result = cb(this);
-    if (already != null) {
-      this.allocation.set(id, already);
-    } else {
-      this.allocation.delete(id);
-    }
-    return result;
   }
 
   getNode(id: number): GraphNode {
@@ -264,6 +262,18 @@ class AllocatedGraph {
   private isSelectable(id: number): boolean {
     return !this.allocation.has(id) &&
            this.allocatedPoints() >= (this.graph.get(id).requiredPoints || 0) &&
+           this.hasRequiredSelected(id);
+  }
+
+  private isIncrementable(id: number): boolean {
+    const allocated = this.allocation.get(id);
+    // 0 is a special marker for explicitly testing reachability.
+    if (allocated === 0)
+      return false;
+
+    const node = this.getNode(id);
+    return (allocated || 0) < node.points &&
+           this.allocatedPoints() >= (node.requiredPoints || 0) &&
            this.hasRequiredSelected(id);
   }
 

@@ -136,4 +136,30 @@ describe('DataService', () => {
 
     expect(solver.isActive(1)).toBe(true);
   });
+
+  it('requiredPoints is reachable', () => {
+    const graph = {
+      1 : {requires : [], points : 1},
+      2 : {requires : [1], points : 1},
+      3 : {requires : [1], points : 1},
+      5 : {requires : [2], points : 1, requiredPoints: 3},
+    };
+
+    const solver = TreeSolver.fromGraph(4, graph);
+
+    expect(solver.isReachable(5)).toBe(true);
+  });
+
+  it('places multiple points for reachability', () => {
+    const graph = {
+      1 : {requires : [], points : 1},
+      2 : {requires : [1], points : 1},
+      3 : {requires : [1], points : 2},
+      5 : {requires : [2], points : 1, requiredPoints: 4},
+    };
+
+    const solver = TreeSolver.fromGraph(5, graph);
+
+    expect(solver.isReachable(5)).toBe(true);
+  });
 });
