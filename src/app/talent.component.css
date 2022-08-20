@@ -42,3 +42,21 @@ pre {
   z-index: 2;
   -webkit-text-stroke: 1px white;
 }
+
+.allocated-points {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+
+  margin: 0;
+  padding: 0 3px;
+  z-index: 2;
+
+  background-color: #000;
+  border-radius: 4px;
+  color: #fff;
+  text-shadow: 1px 1px 0 #242424, 0 1px 0 #242424, -1px 1px 0 #242424, -1px 0 0 #242424, -2px 0 #242424, -1px 0 #242424, 0px 0 #242424, 1px 0 0 #242424;
+  pointer-events: none;
+
+  font-family: Monospace;
+}

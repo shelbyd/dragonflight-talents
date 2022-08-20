@@ -11,3 +11,7 @@
     class="unreachable-overlay"
     *ngIf="!solver.isReachable(talentId)"
     src="/assets/red_x.png" />
+
+<p class="allocated-points">
+  {{ solver.allocated(talentId)[0] }}/{{ solver.allocated(talentId)[1] }}
+</p>

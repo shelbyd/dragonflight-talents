@@ -16,16 +16,18 @@ const rework = (window as any).rework = {
 export class TreeSolver {
   private ag: AllocatedGraph;
 
+  private readonly activeCache = new Cache<number, boolean>();
+
   constructor(
       private readonly maxPoints: number,
-      graph: Graph,
+      private readonly graph: Graph,
   ) {
     this.ag = AllocatedGraph.empty(graph);
   }
 
   public static fromUrl(tree: TalentTree): TreeSolver {
     // TODO(shelbyd): Allow user to configure maxPoints.
-    return new TreeSolver(30, Graph.fromTree(tree));
+    return new TreeSolver(11, Graph.fromTree(tree));
   }
 
   public static fromGraph(points: number, graph: TalentGraph): TreeSolver {
@@ -39,33 +41,57 @@ export class TreeSolver {
     }
 
     this.ag = this.ag.addPoint(id);
+    this.activeCache.clearWhere((_, v) => v === false);
   }
 
   public tryUnselect(id: number) {
     this.ag = this.ag.removePoint(id);
+    this.activeCache.clearWhere(() => true);
   }
 
   public isActive(id: number): boolean {
-    if (this.ag.hasPoints(id))
-      return true;
+    return this.activeCache.orInsert(id, () => {
+      if (this.ag.hasPoints(id))
+        return true;
 
-    const without = this.ag.without(id);
-    if (without.points() < this.ag.points())
-      return true;
+      if (!this.isReachable(id))
+        return false;
 
-    if (without.maxPoints() < this.maxPoints)
-      return true;
+      const without = this.ag.without(id);
+      if (without.points() < this.ag.points())
+        return true;
 
-    const minValidPoints = without.minPointsToValid() + without.points();
-    if (minValidPoints > this.maxPoints)
-      return true;
+      if (without.maxPoints() < this.maxPoints)
+        return true;
 
-    return false;
+      const minValidPoints = without.minPointsToValid() + without.points();
+      if (minValidPoints > this.maxPoints)
+        return true;
+
+      return false;
+    });
   }
 
   public isReachable(id: number): boolean {
-    return this.ag.minPointsToReach(id) <= (this.maxPoints - this.ag.points());
+    if (this.ag.getPoints(id) > 0)
+      return true;
+
+    const withPoint = this.ag.addPoint(id);
+    const minValidPoints = withPoint.minPointsToValid() + withPoint.points();
+    return minValidPoints <= this.maxPoints;
   }
+
+  public allocated(id: number): [ number, number ] {
+    const node = this.graph.get(id);
+    const points = this.ag.getPoints(id);
+    if (this.isActive(id) && points === 0) {
+      return [ node.points, node.points ];
+    }
+
+    return [ points, node.points ];
+  }
+
+  public nodeIds(): number[] { return this.ag.graph.nodeIds; }
 }
 
 interface TalentGraph {
@@ -155,7 +181,7 @@ export class Graph {
 
       graph[id] = {
         requires : availableRequires,
-        points : 1,
+        points : talent.spells[0].points,
         requiredPoints : talent.requiredPoints,
       };
     }
@@ -176,8 +202,7 @@ class AllocatedGraph {
     return new AllocatedGraph(graph);
   }
 
-  constructor(private readonly graph: Graph,
-              private readonly alloc = new Map()) {}
+  constructor(readonly graph: Graph, private readonly alloc = new Map()) {}
 
   addPoint(id: number): AllocatedGraph {
     const already = this.alloc.get(id) || 0;
@@ -202,18 +227,38 @@ class AllocatedGraph {
 
   @Memoize()
   minPointsToReach(id: number): number {
-    if ((this.alloc.get(id) || 0) > 0)
-      return 0;
+    const pointsHere = this.getPoints(id) > 0 ? 0 : 1;
+    return this.minFillIncoming(id) + pointsHere;
+  }
 
+  @Memoize()
+  private minPointsToFill(id: number): number {
+    const onThis = this.graph.get(id).points - this.getPoints(id);
+    return this.minFillIncoming(id) + onThis;
+  }
+
+  @Memoize()
+  private minFillIncoming(id: number): number {
     const node = this.graph.get(id);
-    const incoming = this.graph.incoming(id);
 
+    if (this.maxPointsBelow(id) < (node.requiredPoints || 0))
+      return Infinity;
+
+    const incoming = this.graph.incoming(id);
     const fromDeps =
         incoming.length > 0
             ? Math.min(...incoming.map(i => this.minPointsToFill(i)))
             : 0;
+
     const orRequired = Math.max(fromDeps, node.requiredPoints || 0);
-    return orRequired + 1;
+    return orRequired;
+  }
+
+  @Memoize()
+  private maxPointsBelow(id: number): number {
+    return this.graph.nodeIds.filter(n => n < id)
+        .map(n => this.graph.get(n))
+        .reduce((sum, node) => sum + node.points, 0);
   }
 
   @Memoize()
@@ -225,9 +270,9 @@ class AllocatedGraph {
 
   @Memoize()
   without(id: number): AllocatedGraph {
-    return new AllocatedGraph(
-        this.graph.prune(id),
-        new Map([...this.alloc ].filter(entry => entry[0] !== id)));
+    const pruned = this.graph.prune(id);
+    return new AllocatedGraph(pruned, new Map([...this.alloc ].filter(
+                                          entry => pruned.has(entry[0]))));
   }
 
   @Memoize()
@@ -235,7 +280,8 @@ class AllocatedGraph {
     return this.graph.maxPoints();
   }
 
-  minPointsToValid(): number {
+  @Memoize()
+  minPointsToValid(placeAtOrAfter = -Infinity): number {
     const missingRequired = this.graph.nodeIds.find(id => {
       if (this.getPoints(id) === 0)
         return false;
@@ -244,51 +290,49 @@ class AllocatedGraph {
       if (incoming.length === 0)
         return false;
 
-      const hasFullRequired = incoming.some(inc => this.getPoints(inc) >=
-                                                   this.graph.get(inc).points);
-      if (hasFullRequired)
-        return false;
-      return true;
+      return incoming.every(inc => this.getPoints(inc) <
+                                   this.graph.get(inc).points);
     });
-    if (missingRequired == null)
-      return 0;
 
-    const minPointsPer = this.graph.incoming(missingRequired)
-                             .map(i => this.addPoint(i).minPointsToValid() + 1);
-    return Math.min(...minPointsPer);
+    if (missingRequired != null) {
+      const minPointsPer =
+          this.graph.incoming(missingRequired)
+              .map(i => this.addPoint(i).minPointsToValid() + 1);
+      return Math.min(...minPointsPer);
+    }
+
+    const points = this.points();
+    const notEnoughPoints = this.graph.nodeIds.find(id => {
+      if (this.getPoints(id) === 0)
+        return false;
+
+      const node = this.graph.get(id);
+      return this.pointsBelow(id) < (node.requiredPoints || 0);
+    });
+
+    if (notEnoughPoints != null) {
+      const options = this.graph.nodeIds.filter(
+          n => n < notEnoughPoints && n >= placeAtOrAfter && !this.isFull(n));
+      if (options.length === 0)
+        return Infinity;
+      return Math.min(
+          ...options.map(n => this.addPoint(n).minPointsToValid(n) + 1));
+    }
+
+    return 0;
   }
 
   @Memoize()
-  private minPointsToFill(id: number): number {
-    const node = this.graph.get(id);
-    if ((this.alloc.get(id) || 0) >= node.points)
-      return 0;
-
-    const incoming = this.graph.incoming(id);
-
-    const fromDeps =
-        incoming.length > 0
-            ? Math.min(...incoming.map(i => this.minPointsToFill(i)))
-            : 0;
-    const orRequired = Math.max(fromDeps, node.requiredPoints || 0);
-    return orRequired + node.points;
+  private pointsBelow(id: number): number {
+    return this.graph.nodeIds.filter(n => n < id)
+        .map(n => this.getPoints(n))
+        .reduce((sum, v) => sum + v, 0);
   }
 
-  private getPoints(id: number): number { return this.alloc.get(id) || 0; }
+  public getPoints(id: number): number { return this.alloc.get(id) || 0; }
 
-  private incomingPlaceable(): number[] {
-    return this.graph.nodeIds.flatMap(id => {
-      const incoming = this.graph.incoming(id);
-      if (incoming.length === 0)
-        return [];
-
-      const hasFullRequired = incoming.some(inc => this.getPoints(inc) >=
-                                                   this.graph.get(inc).points);
-      if (hasFullRequired)
-        return [];
-
-      return incoming;
-    })
+  private isFull(id: number): boolean {
+    return this.getPoints(id) >= this.graph.get(id).points;
   }
 }
 

@@ -9,12 +9,24 @@ describe('DataService', () => {
     4 : {requires : [], points : 1},
     5 : {requires : [ 1, 4 ], points : 1},
   };
+
   let solver: TreeSolver;
 
   beforeEach(() => { solver = TreeSolver.fromGraph(2, graph); });
 
+  afterEach(() => checkProperties(solver));
+
+  function checkProperties(solver: TreeSolver) {
+    for (const node of solver.nodeIds()) {
+      if (solver.isActive(node)) {
+        expect(solver.isReachable(node))
+            .toBe(true, `Active node is not reachable ${node}`);
+      }
+    }
+  }
+
   it('no talent is selected', () => {
-    const solver = TreeSolver.fromGraph(1, {
+    solver = TreeSolver.fromGraph(1, {
       1 : {requires : [], points : 1},
       2 : {requires : [], points : 1},
     });
@@ -36,7 +48,7 @@ describe('DataService', () => {
       1 : {requires : [], points : 1},
       2 : {requires : [ 1 ], points : 1},
     };
-    const solver = TreeSolver.fromGraph(2, graph);
+    solver = TreeSolver.fromGraph(2, graph);
 
     solver.trySelect(2);
 
@@ -49,7 +61,7 @@ describe('DataService', () => {
       2 : {requires : [], points : 1},
       3 : {requires : [ 2, 1 ], points : 1},
     };
-    const solver = TreeSolver.fromGraph(2, graph);
+    solver = TreeSolver.fromGraph(2, graph);
 
     solver.trySelect(3);
 
@@ -74,7 +86,7 @@ describe('DataService', () => {
       5 : {requires : [ 2, 3 ], points : 1},
     };
 
-    const solver = TreeSolver.fromGraph(3, graph);
+    solver = TreeSolver.fromGraph(3, graph);
 
     solver.trySelect(4);
     solver.trySelect(5);
@@ -89,7 +101,7 @@ describe('DataService', () => {
       3 : {requires : [ 2 ], points : 1},
     };
 
-    const solver = TreeSolver.fromGraph(2, graph);
+    solver = TreeSolver.fromGraph(2, graph);
 
     solver.trySelect(3);
 
@@ -103,7 +115,7 @@ describe('DataService', () => {
       3 : {requires : [ 1 ], points : 1},
     };
 
-    const solver = TreeSolver.fromGraph(3, graph);
+    solver = TreeSolver.fromGraph(3, graph);
 
     solver.trySelect(2);
 
@@ -121,7 +133,9 @@ describe('DataService', () => {
       4 : {requires : [], points : 1, requiredPoints : 2},
     };
 
-    const solver = TreeSolver.fromGraph(3, graph);
+    solver = TreeSolver.fromGraph(3, graph);
+
+    expect(solver.isReachable(1)).toEqual(true);
 
     solver.trySelect(1);
     solver.trySelect(3);
@@ -136,7 +150,7 @@ describe('DataService', () => {
       3 : {requires : [ 1 ], points : 1},
     };
 
-    const solver = TreeSolver.fromGraph(2, graph);
+    solver = TreeSolver.fromGraph(2, graph);
 
     expect(solver.isActive(1)).toBe(true);
   });
@@ -146,12 +160,12 @@ describe('DataService', () => {
       1 : {requires : [], points : 1},
       2 : {requires : [ 1 ], points : 1},
       3 : {requires : [ 1 ], points : 1},
-      5 : {requires : [ 2 ], points : 1, requiredPoints : 3},
+      4 : {requires : [ 2 ], points : 1, requiredPoints : 3},
     };
 
-    const solver = TreeSolver.fromGraph(4, graph);
+    solver = TreeSolver.fromGraph(4, graph);
 
-    expect(solver.isReachable(5)).toBe(true);
+    expect(solver.isReachable(4)).toBe(true);
   });
 
   it('places multiple points for reachability', () => {
@@ -162,7 +176,7 @@ describe('DataService', () => {
       5 : {requires : [ 2 ], points : 1, requiredPoints : 4},
     };
 
-    const solver = TreeSolver.fromGraph(5, graph);
+    solver = TreeSolver.fromGraph(5, graph);
 
     expect(solver.isReachable(5)).toBe(true);
   });
@@ -177,7 +191,7 @@ describe('DataService', () => {
       6 : {requires : [ 5 ], points : 1},
     };
 
-    const solver = TreeSolver.fromGraph(4, graph);
+    solver = TreeSolver.fromGraph(4, graph);
 
     expect(solver.isReachable(6)).toBe(true);
   });
@@ -190,18 +204,78 @@ describe('DataService', () => {
       4 : {requires : [], points : 1, requiredPoints : 2},
     };
 
-    const solver = TreeSolver.fromGraph(3, graph);
+    solver = TreeSolver.fromGraph(3, graph);
 
     expect(solver.isActive(1)).toBe(true);
     expect(solver.isActive(2)).toBe(true);
+
+    solver.trySelect(3);
+    expect(solver.isReachable(4)).toBe(false);
+  });
+
+  it('activates nodes in chain', () => {
+    const graph = {
+      1 : {requires : [], points : 1},
+      2 : {requires : [ 1 ], points : 1},
+      3 : {requires : [ 2 ], points : 1},
+      4 : {requires : [ 1 ], points : 1},
+      5 : {requires : [ 4 ], points : 1},
+    };
+
+    solver = TreeSolver.fromGraph(3, graph);
+    solver.trySelect(3);
+
+    expect(solver.isActive(2)).toBe(true);
+    expect(solver.isReachable(5)).toBe(false);
+  });
+
+  it('requiredPoints blocks reachability', () => {
+    const graph = {
+      1 : {requires : [], points : 1},
+      2 : {requires : [ 1 ], points : 1, requiredPoints : 1},
+      3 : {requires : [ 2 ], points : 1},
+    };
+
+    solver = TreeSolver.fromGraph(2, graph);
+    solver.trySelect(2);
+
+    expect(solver.isReachable(3)).toBe(false);
+  });
+
+  it('not enough points to reach', () => {
+    const graph = {
+      1 : {requires : [], points : 1},
+      2 : {requires : [ 1 ], points : 1, requiredPoints : 2},
+      3 : {requires : [ 2 ], points : 1},
+    };
+
+    solver = TreeSolver.fromGraph(4, graph);
+
+    expect(solver.isActive(3)).toBe(false);
+    expect(solver.isReachable(3)).toBe(false);
+  });
+
+  it('only reachable in one direction', () => {
+    const graph = {
+      1 : {requires : [], points : 1},
+      2 : {requires : [ 1 ], points : 1},
+      3 : {requires : [ 1 ], points : 2},
+      4 : {requires : [ 2, 3 ], points : 1},
+    };
+
+    solver = TreeSolver.fromGraph(3, graph);
+
+    solver.trySelect(4);
+
+    expect(solver.isReachable(3)).toBe(false);
   });
 
   describe('Graph', () => {
     describe('prune', () => {
       it('prunes single dependency', () => {
         const g = new Graph({
-          1 : {requires: [], points: 1},
-          2 : {requires: [1], points: 1},
+          1 : {requires : [], points : 1},
+          2 : {requires : [ 1 ], points : 1},
         });
 
         expect(g.prune(1)).toEqual(new Graph({}));

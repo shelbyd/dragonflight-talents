@@ -29,4 +29,5 @@ export interface Talent {
 
 export interface Spell {
   icon: string;
+  points: number;
 }
