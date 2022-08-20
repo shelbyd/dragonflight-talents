@@ -41,7 +41,9 @@ export class TreeSolver {
     this.ag = this.ag.addPoint(id);
   }
 
-  public tryUnselect(id: number) { this.ag = this.ag.removePoint(id); }
+  public tryUnselect(id: number) {
+    this.ag = this.ag.removePoint(id);
+  }
 
   public isActive(id: number): boolean {
     if (this.ag.hasPoints(id))
@@ -62,8 +64,7 @@ export class TreeSolver {
   }
 
   public isReachable(id: number): boolean {
-    return this.ag.minReachablePoints(id) <=
-           (this.maxPoints - this.ag.points());
+    return this.ag.minPointsToReach(id) <= (this.maxPoints - this.ag.points());
   }
 }
 
@@ -127,9 +128,14 @@ export class Graph {
 
   @Memoize()
   maxPoints(): number {
-    return [...Object.values(this.graph) ]
-        .map(n => n.points)
-        .reduce((acc, v) => acc + v, 0);
+    const nodes = [...Object.values(this.graph) ];
+    nodes.sort((a, b) => (a.requiredPoints || 0) - (b.requiredPoints || 0));
+
+    return nodes.reduce((placedPoints, node) => {
+      if (placedPoints < node.requiredPoints)
+        return placedPoints;
+      return placedPoints + node.points;
+    }, 0);
   }
 
   static fromTree(tree: TalentTree): Graph {
@@ -179,8 +185,9 @@ class AllocatedGraph {
     if (already >= node.points)
       return this;
 
-    return new AllocatedGraph(this.graph,
-                              new Map([...this.alloc, [ id, already + 1 ] ]));
+    const newAlloc = new Map(this.alloc);
+    newAlloc.set(id, already + 1);
+    return new AllocatedGraph(this.graph, newAlloc);
   }
 
   removePoint(id: number): AllocatedGraph {
@@ -194,7 +201,7 @@ class AllocatedGraph {
   }
 
   @Memoize()
-  minReachablePoints(id: number): number {
+  minPointsToReach(id: number): number {
     if ((this.alloc.get(id) || 0) > 0)
       return 0;
 
@@ -203,7 +210,7 @@ class AllocatedGraph {
 
     const fromDeps =
         incoming.length > 0
-            ? Math.min(...incoming.map(i => this.minFillablePoints(i)))
+            ? Math.min(...incoming.map(i => this.minPointsToFill(i)))
             : 0;
     const orRequired = Math.max(fromDeps, node.requiredPoints || 0);
     return orRequired + 1;
@@ -228,9 +235,11 @@ class AllocatedGraph {
     return this.graph.maxPoints();
   }
 
-  @Memoize()
   minPointsToValid(): number {
     const missingRequired = this.graph.nodeIds.find(id => {
+      if (this.getPoints(id) === 0)
+        return false;
+
       const incoming = this.graph.incoming(id);
       if (incoming.length === 0)
         return false;
@@ -241,7 +250,8 @@ class AllocatedGraph {
         return false;
       return true;
     });
-    if (missingRequired == null) return 0;
+    if (missingRequired == null)
+      return 0;
 
     const minPointsPer = this.graph.incoming(missingRequired)
                              .map(i => this.addPoint(i).minPointsToValid() + 1);
@@ -249,7 +259,7 @@ class AllocatedGraph {
   }
 
   @Memoize()
-  private minFillablePoints(id: number): number {
+  private minPointsToFill(id: number): number {
     const node = this.graph.get(id);
     if ((this.alloc.get(id) || 0) >= node.points)
       return 0;
@@ -258,7 +268,7 @@ class AllocatedGraph {
 
     const fromDeps =
         incoming.length > 0
-            ? Math.min(...incoming.map(i => this.minFillablePoints(i)))
+            ? Math.min(...incoming.map(i => this.minPointsToFill(i)))
             : 0;
     const orRequired = Math.max(fromDeps, node.requiredPoints || 0);
     return orRequired + node.points;
@@ -279,5 +289,26 @@ class AllocatedGraph {
 
       return incoming;
     })
+  }
+}
+
+class Cache<K, V> {
+  private readonly map = new Map<K, V>();
+
+  orInsert(key: K, getValue: () => V): V {
+    if (this.map.has(key))
+      return this.map.get(key)!;
+
+    const v = getValue();
+    this.map.set(key, v);
+    return v;
+  }
+
+  clearWhere(pred: (key: K, value: V) => boolean) {
+    for (const [key, value] of this.map.entries()) {
+      if (pred(key, value)) {
+        this.map.delete(key);
+      }
+    }
   }
 }

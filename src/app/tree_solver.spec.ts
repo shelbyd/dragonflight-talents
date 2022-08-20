@@ -182,7 +182,7 @@ describe('DataService', () => {
     expect(solver.isReachable(6)).toBe(true);
   });
 
-  xit('activates nodes required to hit requiredPoints', () => {
+  it('activates nodes required to hit requiredPoints', () => {
     const graph = {
       1 : {requires : [], points : 1, requiredPoints : 0},
       2 : {requires : [], points : 1, requiredPoints : 0},
