@@ -1,4 +1,4 @@
-import {TreeSolver} from './tree_solver';
+import {Graph, TreeSolver} from './tree_solver';
 
 describe('DataService', () => {
   const graph = {
@@ -32,6 +32,12 @@ describe('DataService', () => {
      () => { expect(() => solver.trySelect(1234567890)).toThrow(); });
 
   it('selects required talent when selecting later talent', () => {
+    const graph = {
+      1 : {requires : [], points : 1},
+      2 : {requires : [ 1 ], points : 1},
+    };
+    const solver = TreeSolver.fromGraph(2, graph);
+
     solver.trySelect(2);
 
     expect(solver.isActive(1)).toBe(true);
@@ -126,8 +132,8 @@ describe('DataService', () => {
   it('auto activates required node', () => {
     const graph = {
       1 : {requires : [], points : 1},
-      2 : {requires : [1], points : 1},
-      3 : {requires : [1], points : 1},
+      2 : {requires : [ 1 ], points : 1},
+      3 : {requires : [ 1 ], points : 1},
     };
 
     const solver = TreeSolver.fromGraph(2, graph);
@@ -138,9 +144,9 @@ describe('DataService', () => {
   it('requiredPoints is reachable', () => {
     const graph = {
       1 : {requires : [], points : 1},
-      2 : {requires : [1], points : 1},
-      3 : {requires : [1], points : 1},
-      5 : {requires : [2], points : 1, requiredPoints: 3},
+      2 : {requires : [ 1 ], points : 1},
+      3 : {requires : [ 1 ], points : 1},
+      5 : {requires : [ 2 ], points : 1, requiredPoints : 3},
     };
 
     const solver = TreeSolver.fromGraph(4, graph);
@@ -151,13 +157,55 @@ describe('DataService', () => {
   it('places multiple points for reachability', () => {
     const graph = {
       1 : {requires : [], points : 1},
-      2 : {requires : [1], points : 1},
-      3 : {requires : [1], points : 2},
-      5 : {requires : [2], points : 1, requiredPoints: 4},
+      2 : {requires : [ 1 ], points : 1},
+      3 : {requires : [ 1 ], points : 2},
+      5 : {requires : [ 2 ], points : 1, requiredPoints : 4},
     };
 
     const solver = TreeSolver.fromGraph(5, graph);
 
     expect(solver.isReachable(5)).toBe(true);
+  });
+
+  it('reproducing mistweaver', () => {
+    const graph = {
+      1 : {requires : [], points : 1, requiredPoints : 0},
+      2 : {requires : [], points : 1, requiredPoints : 0},
+      3 : {requires : [], points : 1, requiredPoints : 0},
+      4 : {requires : [], points : 1, requiredPoints : 0},
+      5 : {requires : [], points : 1, requiredPoints : 2},
+      6 : {requires : [ 5 ], points : 1},
+    };
+
+    const solver = TreeSolver.fromGraph(4, graph);
+
+    expect(solver.isReachable(6)).toBe(true);
+  });
+
+  xit('activates nodes required to hit requiredPoints', () => {
+    const graph = {
+      1 : {requires : [], points : 1, requiredPoints : 0},
+      2 : {requires : [], points : 1, requiredPoints : 0},
+      3 : {requires : [], points : 1, requiredPoints : 2},
+      4 : {requires : [], points : 1, requiredPoints : 2},
+    };
+
+    const solver = TreeSolver.fromGraph(3, graph);
+
+    expect(solver.isActive(1)).toBe(true);
+    expect(solver.isActive(2)).toBe(true);
+  });
+
+  describe('Graph', () => {
+    describe('prune', () => {
+      it('prunes single dependency', () => {
+        const g = new Graph({
+          1 : {requires: [], points: 1},
+          2 : {requires: [1], points: 1},
+        });
+
+        expect(g.prune(1)).toEqual(new Graph({}));
+      });
+    });
   });
 });
