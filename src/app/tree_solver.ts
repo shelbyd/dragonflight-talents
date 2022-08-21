@@ -14,84 +14,54 @@ const rework = (window as any).rework = {
 };
 
 export class TreeSolver {
-  private ag: AllocatedGraph;
-
-  private readonly activeCache = new Cache<number, boolean>();
+  private readonly problem: Problem;
+  private solution = new PartialSolution();
 
   constructor(
       private readonly maxPoints: number,
       private readonly graph: Graph,
   ) {
-    this.ag = AllocatedGraph.empty(graph);
+    this.problem = new Problem(this.graph, this.maxPoints);
+    const constrained = constrain(this.solution, this.problem);
+    if (constrained == null)
+      throw new Error('Provided impossible problem');
+    this.solution = constrained;
   }
 
   public static fromUrl(tree: TalentTree): TreeSolver {
     // TODO(shelbyd): Allow user to configure maxPoints.
-    return new TreeSolver(11, Graph.fromTree(tree));
+    return new TreeSolver(30, Graph.fromTree(tree));
   }
 
   public static fromGraph(points: number, graph: TalentGraph): TreeSolver {
     return new TreeSolver(points, new Graph(graph));
   }
 
-  public trySelect(id: number) {
-    if (!this.isReachable(id)) {
-      console.warn('Tried to select unreachable node');
-      return;
+  public trySelect(id: number) { this.tryAdjust(id, 1); }
+  public tryUnselect(id: number) { this.tryAdjust(id, -1); }
+
+  private tryAdjust(id: number, amount: number) {
+    const adjusted = this.solution.clone();
+    adjusted.adjust(id, amount);
+    const constrained = constrain(adjusted, this.problem);
+    if (constrained != null) {
+      this.solution = constrained;
     }
-
-    this.ag = this.ag.addPoint(id);
-    this.activeCache.clearWhere((_, v) => v === false);
-  }
-
-  public tryUnselect(id: number) {
-    this.ag = this.ag.removePoint(id);
-    this.activeCache.clearWhere(() => true);
   }
 
   public isActive(id: number): boolean {
-    return this.activeCache.orInsert(id, () => {
-      if (this.ag.hasPoints(id))
-        return true;
-
-      if (!this.isReachable(id))
-        return false;
-
-      const without = this.ag.without(id);
-      if (without.points() < this.ag.points())
-        return true;
-
-      if (without.maxPoints() < this.maxPoints)
-        return true;
-
-      const minValidPoints = without.minPointsToValid() + without.points();
-      if (minValidPoints > this.maxPoints)
-        return true;
-
-      return false;
-    });
+    const points = this.solution.getPoints(id)
+    return points == null ? false : points > 0;
   }
 
   public isReachable(id: number): boolean {
-    if (this.ag.getPoints(id) > 0)
-      return true;
-
-    const withPoint = this.ag.addPoint(id);
-    const minValidPoints = withPoint.minPointsToValid() + withPoint.points();
-    return minValidPoints <= this.maxPoints;
+    const points = this.solution.getPoints(id);
+    return points == null ? true : points > 0;
   }
 
-  public allocated(id: number): [ number, number ] {
-    const node = this.graph.get(id);
-    const points = this.ag.getPoints(id);
-    if (this.isActive(id) && points === 0) {
-      return [ node.points, node.points ];
-    }
+  public allocated(id: number): [ number, number ] { throw 'NYI: allocated'; }
 
-    return [ points, node.points ];
-  }
-
-  public nodeIds(): number[] { return this.ag.graph.nodeIds; }
+  public nodeIds(): number[] { return this.graph.nodeIds; }
 }
 
 interface TalentGraph {
@@ -123,6 +93,7 @@ export class Graph {
   }
 
   get(id: number): GraphNode { return this.graph[id]; }
+  nodes(): GraphNode[] { return [...Object.values(this.graph) ]; }
 
   incoming(id: number): number[] { return [...this.get(id).requires ]; }
 
@@ -197,162 +168,222 @@ export class Graph {
 // reachable, selected, active, full
 // unreachable, not selected, not active
 
-class AllocatedGraph {
-  static empty(graph: Graph): AllocatedGraph {
-    return new AllocatedGraph(graph);
-  }
+export class Problem {
+  constructor(readonly graph: Graph, readonly points: number) {}
 
-  constructor(readonly graph: Graph, private readonly alloc = new Map()) {}
-
-  addPoint(id: number): AllocatedGraph {
-    const already = this.alloc.get(id) || 0;
-    const node = this.graph.get(id);
-    if (already >= node.points)
-      return this;
-
-    const newAlloc = new Map(this.alloc);
-    newAlloc.set(id, already + 1);
-    return new AllocatedGraph(this.graph, newAlloc);
-  }
-
-  removePoint(id: number): AllocatedGraph {
-    const already = this.alloc.get(id) || 0;
-    const node = this.graph.get(id);
-    if (already === 0)
-      return this;
-
-    return new AllocatedGraph(this.graph,
-                              new Map([...this.alloc, [ id, already - 1 ] ]));
-  }
-
-  @Memoize()
-  minPointsToReach(id: number): number {
-    const pointsHere = this.getPoints(id) > 0 ? 0 : 1;
-    return this.minFillIncoming(id) + pointsHere;
-  }
-
-  @Memoize()
-  private minPointsToFill(id: number): number {
-    const onThis = this.graph.get(id).points - this.getPoints(id);
-    return this.minFillIncoming(id) + onThis;
-  }
-
-  @Memoize()
-  private minFillIncoming(id: number): number {
-    const node = this.graph.get(id);
-
-    if (this.maxPointsBelow(id) < (node.requiredPoints || 0))
-      return Infinity;
-
-    const incoming = this.graph.incoming(id);
-    const fromDeps =
-        incoming.length > 0
-            ? Math.min(...incoming.map(i => this.minPointsToFill(i)))
-            : 0;
-
-    const orRequired = Math.max(fromDeps, node.requiredPoints || 0);
-    return orRequired;
-  }
-
-  @Memoize()
-  private maxPointsBelow(id: number): number {
-    return this.graph.nodeIds.filter(n => n < id)
-        .map(n => this.graph.get(n))
-        .reduce((sum, node) => sum + node.points, 0);
-  }
-
-  @Memoize()
-  points(): number {
-    return [...this.alloc.values() ].reduce((acc, v) => acc + v, 0);
-  }
-
-  hasPoints(id: number): boolean { return this.getPoints(id) > 0; }
-
-  @Memoize()
-  without(id: number): AllocatedGraph {
-    const pruned = this.graph.prune(id);
-    return new AllocatedGraph(pruned, new Map([...this.alloc ].filter(
-                                          entry => pruned.has(entry[0]))));
-  }
-
-  @Memoize()
-  maxPoints(): number {
-    return this.graph.maxPoints();
-  }
-
-  @Memoize()
-  minPointsToValid(placeAtOrAfter = -Infinity): number {
-    const missingRequired = this.graph.nodeIds.find(id => {
-      if (this.getPoints(id) === 0)
-        return false;
-
-      const incoming = this.graph.incoming(id);
-      if (incoming.length === 0)
-        return false;
-
-      return incoming.every(inc => this.getPoints(inc) <
-                                   this.graph.get(inc).points);
-    });
-
-    if (missingRequired != null) {
-      const minPointsPer =
-          this.graph.incoming(missingRequired)
-              .map(i => this.addPoint(i).minPointsToValid() + 1);
-      return Math.min(...minPointsPer);
+  optionsFor(id: number): number[] {
+    const result = [];
+    for (let i = 0; i <= this.graph.get(id).points; i++) {
+      result.push(i);
     }
-
-    const points = this.points();
-    const notEnoughPoints = this.graph.nodeIds.find(id => {
-      if (this.getPoints(id) === 0)
-        return false;
-
-      const node = this.graph.get(id);
-      return this.pointsBelow(id) < (node.requiredPoints || 0);
-    });
-
-    if (notEnoughPoints != null) {
-      const options = this.graph.nodeIds.filter(
-          n => n < notEnoughPoints && n >= placeAtOrAfter && !this.isFull(n));
-      if (options.length === 0)
-        return Infinity;
-      return Math.min(
-          ...options.map(n => this.addPoint(n).minPointsToValid(n) + 1));
-    }
-
-    return 0;
+    return result;
   }
 
-  @Memoize()
-  private pointsBelow(id: number): number {
-    return this.graph.nodeIds.filter(n => n < id)
-        .map(n => this.getPoints(n))
-        .reduce((sum, v) => sum + v, 0);
+  without(id: number): Problem {
+    return new Problem(this.graph.prune(id), this.points);
   }
 
-  public getPoints(id: number): number { return this.alloc.get(id) || 0; }
+  validity(solution: PartialSolution): 'invalid'|'valid'|'incomplete' {
+    if (!this.hasEnoughPoints())
+      return 'invalid';
 
-  private isFull(id: number): boolean {
-    return this.getPoints(id) >= this.graph.get(id).points;
+    const allPointsInProblem = solution.allocated().every(
+        ([ id, amount ]) => amount === 0 || this.graph.has(id));
+    if (!allPointsInProblem)
+      return 'invalid';
+
+    if (this.isValidSolution(solution))
+      return 'valid';
+
+    return 'incomplete';
+  }
+
+  private hasEnoughPoints(): boolean {
+    const nodes = this.graph.nodes();
+    nodes.sort((a, b) => (a.requiredPoints || 0) - (b.requiredPoints || 0));
+
+    const placeable = nodes.reduce((placed, node) => {
+      if (placed >= (node.requiredPoints || 0)) {
+        return placed + node.points;
+      } else {
+        return placed;
+      }
+    }, 0);
+    return placeable >= this.points;
+  }
+
+  private isValidPartial(ps: PartialSolution): boolean {
+    return this.graph.nodeIds.every(n => this.isValidNode(n, ps));
+  }
+
+  private isValidNode(id: number, ps: PartialSolution): boolean {
+    const node = this.graph.get(id);
+    return node.requires.length === 0 ||
+           node.requires.some(r =>
+                                  ps.getPoints(r) === this.graph.get(r).points);
+  }
+
+  private isValidSolution(ps: PartialSolution): boolean {
+    if (!this.isValidPartial(ps))
+      return false;
+    return this.totalPoints(ps) === this.points;
+  }
+
+  private totalPoints(ps: PartialSolution): number {
+    return this.graph.nodeIds.map(n => ps.getPoints(n) ?? 0).reduce((acc, v) => acc + v, 0);
   }
 }
 
-class Cache<K, V> {
-  private readonly map = new Map<K, V>();
+export class PartialSolution {
+  private user = new Map<number, number>();
+  private inferred = new Map<number, number>();
 
-  orInsert(key: K, getValue: () => V): V {
-    if (this.map.has(key))
-      return this.map.get(key)!;
+  private options = new Map<number, number[]>();
 
-    const v = getValue();
-    this.map.set(key, v);
-    return v;
-  }
+  adjust(id: number, amount: number) {
+    if (this.inferred.has(id)) {
+      console.warn(`Tried to adjust inferred value ${id} by ${amount}`);
+      return;
+    }
 
-  clearWhere(pred: (key: K, value: V) => boolean) {
-    for (const [key, value] of this.map.entries()) {
-      if (pred(key, value)) {
-        this.map.delete(key);
-      }
+    this.options.delete(id);
+    this.inferred.clear();
+
+    const newValue = (this.user.get(id) || 0) + amount;
+    if (newValue <= 0) {
+      this.user.delete(id);
+    } else {
+      this.user.set(id, newValue);
     }
   }
+
+  infer(id: number, value: number) {
+    this.options.delete(id);
+
+    if (this.user.has(id))
+      throw new Error(`Tried to infer id ${id} with user ${this.user.get(id)}`);
+
+    this.inferred.set(id, value);
+  }
+
+  setOptions(id: number, opts: number[]) {
+    if (opts.length === 0) {
+      throw new Error(`Tried to assign no options to ${id}`);
+    } else if (opts.length === 1) {
+      this.infer(id, opts[0]);
+    } else {
+      this.options.set(id, opts);
+    }
+  }
+
+  imutSetOptions(id: number, opts: number[]) {
+    const existing = this.options.get(id);
+    if (JSON.stringify(existing) === JSON.stringify(opts))
+      return this;
+
+    const clone = this.clone();
+    clone.setOptions(id, opts);
+    return clone;
+  }
+
+  clone(): PartialSolution {
+    const result = new PartialSolution();
+    result.user = new Map(this.user);
+    result.inferred = new Map(this.inferred);
+    result.options = new Map([...this.options.entries() ].map(
+        ([ key, value ]) => [key, [...value ]]));
+    return result;
+  }
+
+  totalPoints(): number {
+    const sumValues = (map: Map<unknown, number>) => [...map.values()].reduce(
+        (acc, v) => acc + v, 0);
+    return sumValues(this.user) + sumValues(this.inferred);
+  }
+  getPoints(id: number): number|null {
+    return this.user.get(id) ?? this.inferred.get(id) ?? null;
+  }
+
+  optionsFor(id: number, get: () => number[]): number[] {
+    const points = this.getPoints(id);
+    if (points != null)
+      return [ points ];
+
+    if (!this.options.has(id)) {
+      this.options.set(id, get());
+    }
+    return this.options.get(id)!;
+  }
+
+  allocated(): Array<[ number, number ]> {
+    return [...this.user.entries(), ...this.inferred.entries() ];
+  }
+}
+
+export function constrain(
+    ps: PartialSolution,
+    problem: Problem,
+    ): PartialSolution|null {
+  let result = ps;
+
+  while (true) {
+    const origResult = result;
+
+    for (const node of problem.graph.nodeIds) {
+      const opts = result.optionsFor(node, () => problem.optionsFor(node));
+      if (opts.length === 1)
+        continue;
+
+      const valid = opts.filter(opt => {
+        const clone = result.clone();
+        clone.infer(node, opt);
+        return solutionExists(clone, problem);
+      });
+
+      if (valid.length === 0) {
+        return null;
+      } else {
+        result = result.imutSetOptions(node, valid);
+      }
+    }
+
+    if (result === origResult)
+      return result;
+  }
+}
+
+export function solutionExists(ps: PartialSolution, problem: Problem): boolean {
+  const validity = problem.validity(ps);
+  switch (validity) {
+  case 'valid':
+    return true;
+  case 'invalid':
+    return false;
+  case 'incomplete':
+    break;
+  default:
+    throw new Error(`Unhandled validity ${validity}`);
+  }
+
+  const withoutZeros = problem.graph.nodeIds.filter(n => ps.getPoints(n) === 0)
+                           .reduce((p, node) => p.without(node), problem);
+  if (withoutZeros != problem) {
+    const constrained = constrain(ps, withoutZeros);
+    if (constrained == null)
+      return false;
+
+    return solutionExists(constrained, withoutZeros);
+  }
+
+  const empty = problem.graph.nodeIds.find(n => ps.getPoints(n) == null);
+  if (empty == null) {
+    return false;
+  }
+
+  const opts = ps.optionsFor(empty, () => problem.optionsFor(empty));
+  return opts.some(opt => {
+    const clone = ps.clone();
+    clone.infer(empty, opt);
+    return solutionExists(clone, problem);
+  });
 }
