@@ -297,8 +297,8 @@ describe('tree_solver', () => {
         1 : {requires : [], points : 1},
         2 : {requires : [], points : 1},
         3 : {requires : [], points : 1},
-        10 : {requires : [], points : 1, requiredPoints: 2},
-        11 : {requires : [], points : 1, requiredPoints: 2},
+        10 : {requires : [], points : 1, requiredPoints : 2},
+        11 : {requires : [], points : 1, requiredPoints : 2},
       };
 
       solver = TreeSolver.fromGraph(3, graph);
@@ -332,9 +332,7 @@ describe('tree_solver', () => {
       });
       const problem = new Problem(g, 3);
 
-      const solution = new PartialSolution();
-      solution.adjust(2, 1);
-      solution.adjust(4, 1);
+      const solution = new PartialSolution().adjust(2, 1).adjust(4, 1);
 
       expect(solutionExists(solution, problem)).toEqual(false);
     });

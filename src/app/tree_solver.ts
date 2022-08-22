@@ -44,8 +44,7 @@ export class TreeSolver {
   public tryUnselect(id: number) { this.tryAdjust(id, -1); }
 
   private tryAdjust(id: number, amount: number) {
-    const adjusted = this.solution.clone();
-    adjusted.adjust(id, amount);
+    const adjusted = this.solution.adjust(id, amount);
     const constrained = constrain(adjusted, this.problem);
     if (constrained != null) {
       this.solution = constrained;
@@ -71,6 +70,10 @@ export class TreeSolver {
   }
 
   public nodeIds(): number[] { return this.graph.nodeIds; }
+
+  public isSelected(id: number): boolean {
+    return this.solution.isSelected(id);
+  }
 }
 
 interface TalentGraph {
@@ -311,45 +314,33 @@ export class Problem {
   hintConstrainOrder(ps: PartialSolution): number[] {
     const empty = this.graph.nodeIds.filter(n => ps.getPoints(n) === null);
     return sortByKey(empty, (n) => {
-      return [ ordRev(this.hintValue(n, ps)), this.graph.weight(n), ordRev(n) ];
+      return [
+        this.graph.weight(n),
+        ordRev(n),
+      ];
     });
   }
-
-  private hintValue(id: number, ps: PartialSolution): HintValue {
-    const contributesToRequired = this.graph.outgoing(id).some(
-        n => this.incomingValidity(n, ps) === 'incomplete');
-    if (contributesToRequired)
-      return HintValue.CONTRIBUTES_TO_REQUIRED;
-
-    return HintValue.NONE;
-  }
-}
-
-enum HintValue {
-  NONE = 0,
-  CONTRIBUTES_TO_REQUIRED,
 }
 
 export class PartialSolution {
-  private user = new Map<number, number>();
   private inferred = new Map<number, number>();
 
   private options = new Map<number, number[]>();
 
-  adjust(id: number, amount: number) {
+  constructor(private readonly user = new Map<number, number>()) {}
+
+  adjust(id: number, amount: number): PartialSolution {
     if (this.inferred.has(id)) {
       console.warn(`Tried to adjust inferred value ${id} by ${amount}`);
-      return;
+      return this;
     }
-
-    this.options.delete(id);
-    this.inferred.clear();
 
     const newValue = (this.user.get(id) || 0) + amount;
     if (newValue <= 0) {
-      this.user.delete(id);
+      return new PartialSolution(
+          new Map([...this.user ].filter(entry => entry[0] !== id)));
     } else {
-      this.user.set(id, newValue);
+      return new PartialSolution(new Map([...this.user, [ id, newValue ] ]));
     }
   }
 
@@ -383,11 +374,9 @@ export class PartialSolution {
   }
 
   clone(): PartialSolution {
-    const result = new PartialSolution();
-    result.user = new Map(this.user);
+    const result = new PartialSolution(this.user);
     result.inferred = new Map(this.inferred);
-    result.options = new Map([...this.options.entries() ].map(
-        ([ key, value ]) => [key, [...value ]]));
+    result.options = new Map(this.options);
     return result;
   }
 
@@ -396,6 +385,7 @@ export class PartialSolution {
         (acc, v) => acc + v, 0);
     return sumValues(this.user) + sumValues(this.inferred);
   }
+
   getPoints(id: number): number|null {
     return this.user.get(id) ?? this.inferred.get(id) ?? null;
   }
@@ -414,6 +404,8 @@ export class PartialSolution {
   allocated(): Array<[ number, number ]> {
     return [...this.user.entries(), ...this.inferred.entries() ];
   }
+
+  isSelected(id: number): boolean { return this.user.has(id); }
 }
 
 export function constrain(

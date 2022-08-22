@@ -29,6 +29,11 @@
   filter: grayscale(100%);
 }
 
+.background-image.selected {
+  border: 2px solid orange;
+  box-shadow: 0px 0px 10px orange;
+}
+
 .unreachable-overlay {
   max-width: 100%;
   max-height: 100%;
