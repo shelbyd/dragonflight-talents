@@ -213,6 +213,15 @@ export class Problem {
       return 'invalid';
     }
 
+    const overAssigned = this.graph.nodeIds.some(id => {
+      const node = this.graph.get(id);
+      return (ps.getPoints(id) || 0) > node.points;
+    });
+    if (overAssigned) {
+      rework['validity'].touch('over_assigned');
+      return 'invalid';
+    }
+
     if (this.minPointsFulfillingRequired(ps) > this.points) {
       rework['validity'].touch('requires_too_many_points');
       return 'invalid';

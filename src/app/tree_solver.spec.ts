@@ -56,6 +56,19 @@ describe('tree_solver', () => {
       expect(solver.isActive(1)).toBe(true);
     });
 
+    it('selecting single point multiple times', () => {
+      solver = TreeSolver.fromGraph(2, {
+        1 : {requires : [], points : 1},
+        2 : {requires : [], points : 1},
+        3 : {requires : [], points : 1},
+      });
+
+      solver.trySelect(1);
+      solver.trySelect(1);
+
+      expect(solver.allocated(1)).toEqual([1, 1]);
+    });
+
     it('selects required talent when selecting later talent', () => {
       const graph = {
         1 : {requires : [], points : 1},
