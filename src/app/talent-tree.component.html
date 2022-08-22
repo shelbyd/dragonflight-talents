@@ -1,25 +1,27 @@
-<p class="points" [style.gridColumn]="columns">
+<p class="points">
   {{ solver.usedPoints() }} / {{ maxPoints }}
 </p>
 
-<talent
-    *ngFor="let talentCell of tree.talents | keyvalue"
-    [talentId]="+talentCell.key"
-    [talent]="talentCell.value"
-    [solver]="solver"
+<div class="tree">
+  <talent
+      *ngFor="let talentCell of tree.talents | keyvalue"
+      [talentId]="+talentCell.key"
+      [talent]="talentCell.value"
+      [solver]="solver"
 
-    (talentClick)="onTalentClick(+talentCell.key)"
-    (talentClear)="onTalentRightClick(+talentCell.key)"
+      (talentClick)="onTalentClick(+talentCell.key)"
+      (talentClear)="onTalentRightClick(+talentCell.key)"
 
-    [style.gridColumn]="gridColumn(+talentCell.key)"
-    [style.gridRow]="gridRow(+talentCell.key)"
-    >
-</talent>
+      [style.gridColumn]="gridColumn(+talentCell.key)"
+      [style.gridRow]="gridRow(+talentCell.key)"
+      >
+  </talent>
 
-<ng-container *ngIf="showConnections">
-  <connection
-      *ngFor="let connection of connections(); trackBy: trackByIndex"
-      [from]="getElement(connection[0])"
-      [to]="getElement(connection[1])"
-      ></connection>
-</ng-container>
+  <ng-container *ngIf="showConnections">
+    <connection
+        *ngFor="let connection of connections(); trackBy: trackByIndex"
+        [from]="getElement(connection[0])"
+        [to]="getElement(connection[1])"
+        ></connection>
+  </ng-container>
+</div>

@@ -1,7 +1,9 @@
 :host {
-  display: grid;
-
   max-width: 800px;
+}
+
+.tree {
+  display: grid;
 }
 
 p.points {
@@ -9,6 +11,8 @@ p.points {
 
   font-family: Monospace;
   font-size: 24px;
+
+  margin: 0;
 }
 
 connection {

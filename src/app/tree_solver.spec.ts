@@ -320,6 +320,24 @@ describe('tree_solver', () => {
 
       expect(solver.isReachable(11)).toBe(false);
     });
+
+    it('can only do 0 or 2', () => {
+      solver = TreeSolver.fromGraph(4, {
+        1 : {requires : [], points : 1},
+        2 : {requires : [1], points : 2},
+        3 : {requires : [1], points : 2},
+        4 : {requires : [2, 3], points : 1},
+      });
+
+      solver.trySelect(1);
+      solver.trySelect(4);
+
+      expect(solver.isReachable(2)).toEqual(true);
+      solver.trySelect(2);
+
+      expect(solver.allocated(1)).toEqual([1, 1]);
+      expect(solver.allocated(2)).toEqual([2, 2]);
+    });
   });
 
   describe('Graph', () => {
@@ -332,30 +350,6 @@ describe('tree_solver', () => {
 
         expect(g.prune(1)).toEqual(new Graph({}));
       });
-    });
-  });
-
-  describe('Problem / Solution', () => {
-    it('cannot solve two chains with 3 points', () => {
-      const g = new Graph({
-        1 : {requires : [], points : 1},
-        2 : {requires : [ 1 ], points : 1},
-        3 : {requires : [], points : 1},
-        4 : {requires : [ 3 ], points : 1},
-      });
-      const problem = new Problem(g, 3);
-
-      const solution = new PartialSolution().adjust(2, 1).adjust(4, 1);
-
-      expect(solutionExists(solution, problem)).toEqual(false);
-    });
-
-    it('solution does not allow adjusting inferred values', () => {
-      const solution = new PartialSolution();
-      solution.infer(3, 0);
-
-      solution.adjust(3, 1);
-      expect(solution.getPoints(3)).toEqual(0);
     });
   });
 });

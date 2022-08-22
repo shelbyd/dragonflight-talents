@@ -39,17 +39,32 @@ export class TreeSolver {
     return new TreeSolver(points, new Graph(graph));
   }
 
-  public trySelect(id: number) { this.tryAdjust(id, 1); }
-  public tryUnselect(id: number) { this.tryAdjust(id, -1); }
+  public trySelect(id: number) {
+    const current = this.solution.getPoints(id) || 0;
+    const options = this.problem.optionsFor(id).filter(o => o > current);
+    options.sort((a, b) => a - b);
+    for (const o of options) {
+      if (this.trySet(id, o)) return;
+    }
+  }
+  public tryUnselect(id: number) {
+    const current = this.solution.getPoints(id) || 0;
+    const options = this.problem.optionsFor(id).filter(o => o < current);
+    options.sort((a, b) => b - a);
+    for (const o of options) {
+      if (this.trySet(id, o)) return;
+    }
+  }
 
-  private tryAdjust(id: number, amount: number) {
-    const adjusted = this.solution.adjust(id, amount);
+  private trySet(id: number, value: number): boolean {
+    const adjusted = this.solution.set(id, value);
     const constrained = constrain(adjusted, this.problem);
     if (constrained != null) {
       this.solution = constrained;
+      return true;
     } else {
-      console.warn(
-          `Adjusting ${id} by ${amount} resulted in unsolvable problem`);
+      console.warn(`Setting ${id} to ${value} resulted in unsolvable problem`);
+      return false;
     }
   }
 
@@ -74,9 +89,7 @@ export class TreeSolver {
     return this.solution.isSelected(id);
   }
 
-  public usedPoints(): number {
-    return this.solution.totalPoints();
-  }
+  public usedPoints(): number { return this.solution.totalPoints(); }
 }
 
 interface TalentGraph {
@@ -341,18 +354,17 @@ export class PartialSolution {
 
   constructor(private readonly user = new Map<number, number>()) {}
 
-  adjust(id: number, amount: number): PartialSolution {
+  set(id: number, value: number): PartialSolution {
     if (this.inferred.has(id)) {
-      console.warn(`Tried to adjust inferred value ${id} by ${amount}`);
+      console.warn(`Tried to set inferred value ${id} to ${value}`);
       return this;
     }
 
-    const newValue = (this.user.get(id) || 0) + amount;
-    if (newValue <= 0) {
+    if (value <= 0) {
       return new PartialSolution(
           new Map([...this.user ].filter(entry => entry[0] !== id)));
     } else {
-      return new PartialSolution(new Map([...this.user, [ id, newValue ] ]));
+      return new PartialSolution(new Map([...this.user, [ id, value ] ]));
     }
   }
 
@@ -402,13 +414,13 @@ export class PartialSolution {
     return this.user.get(id) ?? this.inferred.get(id) ?? null;
   }
 
-  optionsFor(id: number, get: () => number[]): number[] {
+  optionsFor(id: number, problem: Problem): number[] {
     const points = this.getPoints(id);
     if (points != null)
       return [ points ];
 
     if (!this.options.has(id)) {
-      this.options.set(id, get());
+      this.options.set(id, problem.optionsFor(id));
     }
     return this.options.get(id)!;
   }
@@ -424,36 +436,32 @@ export function constrain(
     ps: PartialSolution,
     problem: Problem,
     ): PartialSolution|null {
-  return rework['validity'].reportFn(() => {
-    let result = ps;
+  let result = ps;
 
-    while (true) {
-      const origResult = result;
+  while (true) {
+    const origResult = result;
 
-      for (const node of problem.hintConstrainOrder(ps)) {
-        const opts = result.optionsFor(node, () => problem.optionsFor(node));
-        if (opts.length === 1)
-          continue;
+    for (const node of problem.hintConstrainOrder(ps)) {
+      const opts = result.optionsFor(node, problem);
+      if (opts.length === 1)
+        continue;
 
-        console.debug('Constraining', node);
+      const valid = opts.filter(opt => {
+        const clone = result.clone();
+        clone.infer(node, opt);
+        return solutionExists(clone, problem);
+      });
 
-        const valid = opts.filter(opt => {
-          const clone = result.clone();
-          clone.infer(node, opt);
-          return solutionExists(clone, problem);
-        });
-
-        if (valid.length === 0) {
-          return null;
-        } else {
-          result = result.imutSetOptions(node, valid);
-        }
+      if (valid.length === 0) {
+        return null;
+      } else {
+        result = result.imutSetOptions(node, valid);
       }
-
-      if (result === origResult)
-        return result;
     }
-  });
+
+    if (result === origResult)
+      return result;
+  };
 }
 
 export function solutionExists(ps: PartialSolution, problem: Problem): boolean {
@@ -479,7 +487,7 @@ export function solutionExists(ps: PartialSolution, problem: Problem): boolean {
   if (checkNode == null)
     return false;
 
-  const opts = ps.optionsFor(checkNode, () => problem.optionsFor(checkNode));
+  const opts = ps.optionsFor(checkNode, problem);
   return opts.some(opt => {
     const clone = ps.clone();
     clone.infer(checkNode, opt);
