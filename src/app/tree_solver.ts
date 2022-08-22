@@ -4,6 +4,7 @@ import {Talent, TalentTree} from './data.service';
 import {Rework} from './development_support';
 
 type Selected = Map<number, number>;
+type Validity = 'valid'|'invalid'|'incomplete';
 
 const rework = (window as any).rework = {
   'required' : new Rework('required'),
@@ -59,7 +60,10 @@ export class TreeSolver {
     return points == null ? true : points > 0;
   }
 
-  public allocated(id: number): [ number, number ] { throw 'NYI: allocated'; }
+  public allocated(id: number): [ number, number ] {
+    const points = this.solution.getPoints(id);
+    return [points || 0, this.problem.maxPoints(id)];
+  }
 
   public nodeIds(): number[] { return this.graph.nodeIds; }
 }
@@ -171,6 +175,10 @@ export class Graph {
 export class Problem {
   constructor(readonly graph: Graph, readonly points: number) {}
 
+  maxPoints(id: number): number {
+    return this.graph.get(id).points;
+  }
+
   optionsFor(id: number): number[] {
     const result = [];
     for (let i = 0; i <= this.graph.get(id).points; i++) {
@@ -183,7 +191,7 @@ export class Problem {
     return new Problem(this.graph.prune(id), this.points);
   }
 
-  validity(solution: PartialSolution): 'invalid'|'valid'|'incomplete' {
+  validity(solution: PartialSolution): Validity {
     if (!this.hasEnoughPoints())
       return 'invalid';
 
@@ -192,10 +200,7 @@ export class Problem {
     if (!allPointsInProblem)
       return 'invalid';
 
-    if (this.isValidSolution(solution))
-      return 'valid';
-
-    return 'incomplete';
+    return this.fullValidity(solution);
   }
 
   private hasEnoughPoints(): boolean {
@@ -212,21 +217,49 @@ export class Problem {
     return placeable >= this.points;
   }
 
-  private isValidPartial(ps: PartialSolution): boolean {
-    return this.graph.nodeIds.every(n => this.isValidNode(n, ps));
+  private partialValidity(ps: PartialSolution): Validity {
+    for (const n of this.graph.nodeIds) {
+      const v = this.nodeValidity(n, ps);
+      if (v !== 'valid')
+        return v;
+    }
+
+    return 'valid';
   }
 
-  private isValidNode(id: number, ps: PartialSolution): boolean {
+  private nodeValidity(id: number, ps: PartialSolution): Validity {
     const node = this.graph.get(id);
-    return node.requires.length === 0 ||
-           node.requires.some(r =>
-                                  ps.getPoints(r) === this.graph.get(r).points);
+    if (node.requires.length === 0)
+      return 'valid';
+
+    const nodePoints = ps.getPoints(id) || 0;
+    if (nodePoints === 0)
+      return 'valid';
+
+    let anyIncomplete = false;
+    for (const r of node.requires) {
+      const p = ps.getPoints(r);
+      if (p === this.graph.get(r).points)
+        return 'valid';
+      anyIncomplete = anyIncomplete || p === null;
+    }
+
+    return anyIncomplete ? 'incomplete' : 'invalid';
   }
 
-  private isValidSolution(ps: PartialSolution): boolean {
-    if (!this.isValidPartial(ps))
-      return false;
-    return this.totalPoints(ps) === this.points;
+  private fullValidity(ps: PartialSolution): Validity {
+    const p = this.partialValidity(ps);
+    if (p !== 'valid')
+      return p;
+
+    const missingPoints = this.points - this.totalPoints(ps);
+    if (missingPoints === 0) {
+      return 'valid';
+    } else if (missingPoints > 0) {
+      return 'incomplete';
+    } else {
+      return 'invalid';
+    }
   }
 
   private totalPoints(ps: PartialSolution): number {
@@ -368,11 +401,7 @@ export function solutionExists(ps: PartialSolution, problem: Problem): boolean {
   const withoutZeros = problem.graph.nodeIds.filter(n => ps.getPoints(n) === 0)
                            .reduce((p, node) => p.without(node), problem);
   if (withoutZeros != problem) {
-    const constrained = constrain(ps, withoutZeros);
-    if (constrained == null)
-      return false;
-
-    return solutionExists(constrained, withoutZeros);
+    return solutionExists(ps, withoutZeros);
   }
 
   const empty = problem.graph.nodeIds.find(n => ps.getPoints(n) == null);
