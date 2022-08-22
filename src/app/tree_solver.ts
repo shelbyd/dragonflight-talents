@@ -2,6 +2,7 @@ import {Memoize} from 'typescript-memoize';
 
 import {Talent, TalentTree} from './data.service';
 import {Rework} from './development_support';
+import {ordRev, sortByKey} from './utils';
 
 type Selected = Map<number, number>;
 type Validity = 'valid'|'invalid'|'incomplete';
@@ -178,13 +179,6 @@ export class Graph {
   }
 }
 
-// reachable, not selected, not active
-// reachable, not selected, active, partial
-// reachable, not selected, active, full
-// reachable, selected, active, partial
-// reachable, selected, active, full
-// unreachable, not selected, not active
-
 export class Problem {
   constructor(readonly graph: Graph, readonly points: number) {}
 
@@ -242,8 +236,7 @@ export class Problem {
 
   @Memoize()
   private couldPlaceEnoughPoints(): boolean {
-    const nodes = this.graph.nodes();
-    nodes.sort((a, b) => (a.requiredPoints || 0) - (b.requiredPoints || 0));
+    const nodes = sortByKey(this.graph.nodes(), (n) => n.requiredPoints || 0);
 
     const placeable = nodes.reduce((placed, node) => {
       const enough = placed >= (node.requiredPoints || 0);
@@ -253,12 +246,8 @@ export class Problem {
   }
 
   private minPointsFulfillingRequired(ps: PartialSolution): number {
-    const ids = [...this.graph.nodeIds ];
-    ids.sort((a, b) => {
-      const aNode = this.graph.get(a);
-      const bNode = this.graph.get(b);
-      return (aNode.requiredPoints || 0) - (bNode.requiredPoints || 0);
-    });
+    const ids = sortByKey([...this.graph.nodeIds ],
+                          (n => this.graph.get(n).requiredPoints || 0));
 
     let minPoints = 0;
     for (const id of ids) {
@@ -321,22 +310,9 @@ export class Problem {
 
   hintConstrainOrder(ps: PartialSolution): number[] {
     const empty = this.graph.nodeIds.filter(n => ps.getPoints(n) === null);
-    empty.sort((a, b) => {
-      const aValue = this.hintValue(a, ps);
-      const bValue = this.hintValue(b, ps);
-      if (aValue !== bValue) {
-        return bValue - aValue;
-      }
-
-      const aWeight = this.graph.weight(a);
-      const bWeight = this.graph.weight(b);
-      if (aWeight != bWeight) {
-        return aWeight - bWeight;
-      }
-
-      return b - a;
+    return sortByKey(empty, (n) => {
+      return [ ordRev(this.hintValue(n, ps)), this.graph.weight(n), ordRev(n) ];
     });
-    return empty;
   }
 
   private hintValue(id: number, ps: PartialSolution): HintValue {
