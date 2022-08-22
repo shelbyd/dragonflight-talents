@@ -99,8 +99,6 @@ export class Graph {
   get(id: number): GraphNode { return this.graph[id]; }
   nodes(): GraphNode[] { return [...Object.values(this.graph) ]; }
 
-  incoming(id: number): number[] { return [...this.get(id).requires ]; }
-
   @Memoize()
   prune(pruneId: number): Graph {
     const result: TalentGraph = {};
@@ -126,18 +124,6 @@ export class Graph {
   }
 
   has(id: number): boolean { return this.graph[id] != null; }
-
-  @Memoize()
-  maxPoints(): number {
-    const nodes = [...Object.values(this.graph) ];
-    nodes.sort((a, b) => (a.requiredPoints || 0) - (b.requiredPoints || 0));
-
-    return nodes.reduce((placedPoints, node) => {
-      if (placedPoints < node.requiredPoints)
-        return placedPoints;
-      return placedPoints + node.points;
-    }, 0);
-  }
 
   static fromTree(tree: TalentTree): Graph {
     const graph: TalentGraph = {};
