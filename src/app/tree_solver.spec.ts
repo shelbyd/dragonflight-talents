@@ -26,9 +26,17 @@ describe('tree_solver', () => {
 
     function checkProperties(solver: TreeSolver) {
       for (const node of solver.nodeIds()) {
+        const reachable = solver.isReachable(node);
+
         if (solver.isActive(node)) {
-          expect(solver.isReachable(node))
-              .toBe(true, `Active node is not reachable ${node}`);
+          expect(reachable).toBe(true, `Active node is not reachable ${node}`);
+        }
+
+        if (reachable) {
+          solver.trySelect(node);
+          expect(solver.isActive(node))
+              .toBe(true, `Unable to select reachable node ${node}`);
+          solver.tryUnselect(node);
         }
       }
     }
@@ -266,9 +274,7 @@ describe('tree_solver', () => {
         3 : {requires : [ 2 ], points : 1},
       };
 
-      expect(() => {
-        TreeSolver.fromGraph(4, graph);
-      }).toThrow();
+      expect(() => { TreeSolver.fromGraph(4, graph); }).toThrow();
     });
 
     it('only reachable in one direction', () => {
@@ -284,6 +290,22 @@ describe('tree_solver', () => {
       solver.trySelect(4);
 
       expect(solver.isReachable(3)).toBe(false);
+    });
+
+    it('too many points after required with options', () => {
+      const graph = {
+        1 : {requires : [], points : 1},
+        2 : {requires : [], points : 1},
+        3 : {requires : [], points : 1},
+        10 : {requires : [], points : 1, requiredPoints: 2},
+        11 : {requires : [], points : 1, requiredPoints: 2},
+      };
+
+      solver = TreeSolver.fromGraph(3, graph);
+
+      solver.trySelect(10);
+
+      expect(solver.isReachable(11)).toBe(false);
     });
   });
 

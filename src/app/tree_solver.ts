@@ -12,6 +12,7 @@ const rework = (window as any).rework = {
   'allocateAmount' : new Rework('allocateAmount'),
   'reachable' : new Rework('reachable'),
   'emplace' : new Rework('emplace'),
+  'validity' : new Rework('validity'),
 };
 
 export class TreeSolver {
@@ -47,6 +48,9 @@ export class TreeSolver {
     const constrained = constrain(adjusted, this.problem);
     if (constrained != null) {
       this.solution = constrained;
+    } else {
+      console.warn(
+          `Adjusting ${id} by ${amount} resulted in unsolvable problem`);
     }
   }
 
@@ -62,7 +66,7 @@ export class TreeSolver {
 
   public allocated(id: number): [ number, number ] {
     const points = this.solution.getPoints(id);
-    return [points || 0, this.problem.maxPoints(id)];
+    return [ points || 0, this.problem.maxPoints(id) ];
   }
 
   public nodeIds(): number[] { return this.graph.nodeIds; }
@@ -98,6 +102,31 @@ export class Graph {
 
   get(id: number): GraphNode { return this.graph[id]; }
   nodes(): GraphNode[] { return [...Object.values(this.graph) ]; }
+  has(id: number): boolean { return this.graph[id] != null; }
+
+  @Memoize()
+  outgoing(id: number): number[] {
+    return this.nodeIds.filter(n => this.get(n).requires.includes(id));
+  }
+
+  @Memoize()
+  weight(id: number): number {
+    const reachable = new Set();
+    const unchecked = [ id ];
+
+    while (unchecked.length > 0) {
+      const node = unchecked.pop()!;
+      for (const o of this.outgoing(node)) {
+        if (reachable.has(o))
+          continue;
+
+        reachable.add(o);
+        unchecked.push(o);
+      }
+    }
+
+    return reachable.size;
+  }
 
   @Memoize()
   prune(pruneId: number): Graph {
@@ -122,8 +151,6 @@ export class Graph {
 
     return recursePrune.reduce((g, i) => g.prune(i), new Graph(result));
   }
-
-  has(id: number): boolean { return this.graph[id] != null; }
 
   static fromTree(tree: TalentTree): Graph {
     const graph: TalentGraph = {};
@@ -161,9 +188,7 @@ export class Graph {
 export class Problem {
   constructor(readonly graph: Graph, readonly points: number) {}
 
-  maxPoints(id: number): number {
-    return this.graph.get(id).points;
-  }
+  maxPoints(id: number): number { return this.graph.get(id).points; }
 
   optionsFor(id: number): number[] {
     const result = [];
@@ -173,39 +198,83 @@ export class Problem {
     return result;
   }
 
+  @Memoize()
   without(id: number): Problem {
     return new Problem(this.graph.prune(id), this.points);
   }
 
-  validity(solution: PartialSolution): Validity {
-    if (!this.hasEnoughPoints())
+  validity(ps: PartialSolution): Validity {
+    if (!this.couldPlaceEnoughPoints()) {
+      rework['validity'].touch('not_enough_points');
       return 'invalid';
+    }
 
-    const allPointsInProblem = solution.allocated().every(
+    const allPointsInProblem = ps.allocated().every(
         ([ id, amount ]) => amount === 0 || this.graph.has(id));
-    if (!allPointsInProblem)
+    if (!allPointsInProblem) {
+      rework['validity'].touch('points_have_been_removed');
       return 'invalid';
+    }
 
-    return this.fullValidity(solution);
+    if (this.minPointsFulfillingRequired(ps) > this.points) {
+      rework['validity'].touch('requires_too_many_points');
+      return 'invalid';
+    }
+
+    const p = this.partialValidity(ps);
+    if (p !== 'valid') {
+      rework['validity'].touch('invalid_partial');
+      return p;
+    }
+
+    const missingPoints = this.points - this.totalPoints(ps);
+    if (missingPoints > 0) {
+      rework['validity'].touch('missing_placed_points');
+      return 'incomplete';
+    } else if (missingPoints < 0) {
+      rework['validity'].touch('too_many_placed_points');
+      return 'invalid';
+    }
+
+    rework['validity'].touch('valid');
+    return 'valid';
   }
 
-  private hasEnoughPoints(): boolean {
+  @Memoize()
+  private couldPlaceEnoughPoints(): boolean {
     const nodes = this.graph.nodes();
     nodes.sort((a, b) => (a.requiredPoints || 0) - (b.requiredPoints || 0));
 
     const placeable = nodes.reduce((placed, node) => {
-      if (placed >= (node.requiredPoints || 0)) {
-        return placed + node.points;
-      } else {
-        return placed;
-      }
+      const enough = placed >= (node.requiredPoints || 0);
+      return placed + (enough ? node.points : 0);
     }, 0);
     return placeable >= this.points;
   }
 
+  private minPointsFulfillingRequired(ps: PartialSolution): number {
+    const ids = [...this.graph.nodeIds ];
+    ids.sort((a, b) => {
+      const aNode = this.graph.get(a);
+      const bNode = this.graph.get(b);
+      return (aNode.requiredPoints || 0) - (bNode.requiredPoints || 0);
+    });
+
+    let minPoints = 0;
+    for (const id of ids) {
+      const points = ps.getPoints(id);
+      if (points === 0 || points == null)
+        continue;
+
+      const node = this.graph.get(id);
+      minPoints = Math.max(minPoints, node.requiredPoints || 0) + (points || 0);
+    }
+    return minPoints;
+  }
+
   private partialValidity(ps: PartialSolution): Validity {
     for (const n of this.graph.nodeIds) {
-      const v = this.nodeValidity(n, ps);
+      const v = this.incomingValidity(n, ps);
       if (v !== 'valid')
         return v;
     }
@@ -213,7 +282,7 @@ export class Problem {
     return 'valid';
   }
 
-  private nodeValidity(id: number, ps: PartialSolution): Validity {
+  private incomingValidity(id: number, ps: PartialSolution): Validity {
     const node = this.graph.get(id);
     if (node.requires.length === 0)
       return 'valid';
@@ -233,24 +302,56 @@ export class Problem {
     return anyIncomplete ? 'incomplete' : 'invalid';
   }
 
-  private fullValidity(ps: PartialSolution): Validity {
-    const p = this.partialValidity(ps);
-    if (p !== 'valid')
-      return p;
-
-    const missingPoints = this.points - this.totalPoints(ps);
-    if (missingPoints === 0) {
-      return 'valid';
-    } else if (missingPoints > 0) {
-      return 'incomplete';
-    } else {
-      return 'invalid';
-    }
-  }
-
   private totalPoints(ps: PartialSolution): number {
     return this.graph.nodeIds.map(n => ps.getPoints(n) ?? 0).reduce((acc, v) => acc + v, 0);
   }
+
+  searchHint(ps: PartialSolution): number|null {
+    const missingInc = this.graph.nodeIds.find(
+        n => this.incomingValidity(n, ps) === 'incomplete');
+    if (missingInc != null) {
+      const missing = this.graph.get(missingInc)
+                          .requires.find(n => ps.getPoints(n) === null);
+      if (missing != null)
+        return missing;
+    }
+
+    return this.hintConstrainOrder(ps)[0] ?? null;
+  }
+
+  hintConstrainOrder(ps: PartialSolution): number[] {
+    const empty = this.graph.nodeIds.filter(n => ps.getPoints(n) === null);
+    empty.sort((a, b) => {
+      const aValue = this.hintValue(a, ps);
+      const bValue = this.hintValue(b, ps);
+      if (aValue !== bValue) {
+        return bValue - aValue;
+      }
+
+      const aWeight = this.graph.weight(a);
+      const bWeight = this.graph.weight(b);
+      if (aWeight != bWeight) {
+        return aWeight - bWeight;
+      }
+
+      return b - a;
+    });
+    return empty;
+  }
+
+  private hintValue(id: number, ps: PartialSolution): HintValue {
+    const contributesToRequired = this.graph.outgoing(id).some(
+        n => this.incomingValidity(n, ps) === 'incomplete');
+    if (contributesToRequired)
+      return HintValue.CONTRIBUTES_TO_REQUIRED;
+
+    return HintValue.NONE;
+  }
+}
+
+enum HintValue {
+  NONE = 0,
+  CONTRIBUTES_TO_REQUIRED,
 }
 
 export class PartialSolution {
@@ -343,32 +444,36 @@ export function constrain(
     ps: PartialSolution,
     problem: Problem,
     ): PartialSolution|null {
-  let result = ps;
+  return rework['validity'].reportFn(() => {
+    let result = ps;
 
-  while (true) {
-    const origResult = result;
+    while (true) {
+      const origResult = result;
 
-    for (const node of problem.graph.nodeIds) {
-      const opts = result.optionsFor(node, () => problem.optionsFor(node));
-      if (opts.length === 1)
-        continue;
+      for (const node of problem.hintConstrainOrder(ps)) {
+        const opts = result.optionsFor(node, () => problem.optionsFor(node));
+        if (opts.length === 1)
+          continue;
 
-      const valid = opts.filter(opt => {
-        const clone = result.clone();
-        clone.infer(node, opt);
-        return solutionExists(clone, problem);
-      });
+        console.debug('Constraining', node);
 
-      if (valid.length === 0) {
-        return null;
-      } else {
-        result = result.imutSetOptions(node, valid);
+        const valid = opts.filter(opt => {
+          const clone = result.clone();
+          clone.infer(node, opt);
+          return solutionExists(clone, problem);
+        });
+
+        if (valid.length === 0) {
+          return null;
+        } else {
+          result = result.imutSetOptions(node, valid);
+        }
       }
-    }
 
-    if (result === origResult)
-      return result;
-  }
+      if (result === origResult)
+        return result;
+    }
+  });
 }
 
 export function solutionExists(ps: PartialSolution, problem: Problem): boolean {
@@ -390,15 +495,14 @@ export function solutionExists(ps: PartialSolution, problem: Problem): boolean {
     return solutionExists(ps, withoutZeros);
   }
 
-  const empty = problem.graph.nodeIds.find(n => ps.getPoints(n) == null);
-  if (empty == null) {
+  const checkNode = problem.searchHint(ps);
+  if (checkNode == null)
     return false;
-  }
 
-  const opts = ps.optionsFor(empty, () => problem.optionsFor(empty));
+  const opts = ps.optionsFor(checkNode, () => problem.optionsFor(checkNode));
   return opts.some(opt => {
     const clone = ps.clone();
-    clone.infer(empty, opt);
+    clone.infer(checkNode, opt);
     return solutionExists(clone, problem);
   });
 }
