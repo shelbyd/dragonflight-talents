@@ -6,7 +6,7 @@
   >
 </div>
 
-<pre>{{ talentId }}</pre>
+<pre *ngIf="showIdOverlay">{{ talentId }}</pre>
 
 <img
     class="unreachable-overlay"
@@ -16,3 +16,5 @@
 <p class="allocated-points">
   {{ solver.allocated(talentId)[0] }}/{{ solver.allocated(talentId)[1] }}
 </p>
+
+<a class="tooltip-anchor" attr.data-wowhead="spell={{ spell.spell }}"></a>

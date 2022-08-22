@@ -16,12 +16,21 @@ export class TalentComponent {
   get talent() { return this.talentList[0]; }
 
   get backgroundImage() {
-    const ability = `https://wow.zamimg.com/images/wow/icons/large/${
-        this.talent.spells[0].icon}.jpg`;
+    const ability =
+        `https://wow.zamimg.com/images/wow/icons/large/${this.spell.icon}.jpg`;
     const fallback =
         "https://wow.zamimg.com/images/wow/icons/large/inv_misc_questionmark.jpg";
     return `url("${ability}"), url("${fallback}")`;
   };
 
+  get spell() { return this.talent.spells[0]; }
+
   constructor(readonly element: ElementRef) {}
+
+  showIdOverlay = false;
+
+  ngOnInit() {
+    const searchParams = new URLSearchParams(window.location.search);
+    this.showIdOverlay = searchParams.has('debug');
+  }
 }
