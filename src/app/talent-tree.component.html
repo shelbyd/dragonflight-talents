@@ -4,8 +4,8 @@
     [talent]="talentCell.value"
     [solver]="solver"
 
-    (click)="onTalentClick(+talentCell.key)"
-    (contextmenu)="$event.preventDefault(); onTalentRightClick(+talentCell.key)"
+    (talentClick)="onTalentClick(+talentCell.key)"
+    (talentClear)="onTalentRightClick(+talentCell.key)"
 
     [style.gridColumn]="gridColumn(+talentCell.key)"
     [style.gridRow]="gridRow(+talentCell.key)"

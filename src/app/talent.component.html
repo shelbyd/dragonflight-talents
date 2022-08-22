@@ -1,9 +1,18 @@
 <div
-    class="background-image {{talentType}}-talent"
+    class="root {{talentType}}-talent"
     [class.active]="solver.isActive(talentId)"
     [class.selected]="solver.isSelected(talentId)"
-    [style.backgroundImage]="backgroundImage"
   >
+  <div *ngFor="let spell of spellChoices(); let i = index"
+      class="background-image image-{{i}}-of-{{ spellChoices().length }}"
+      [style.backgroundImage]="getBackgroundImage(spell)">
+    <a
+        class="tooltip-anchor"
+        attr.data-wowhead="spell={{ spell.spell }}"
+        (click)="selectSpell(i)"
+        (contextmenu)="$event.preventDefault(); clearSpell(i)"
+      ></a>
+  </div>
 </div>
 
 <pre *ngIf="showIdOverlay">{{ talentId }}</pre>
@@ -17,4 +26,3 @@
   {{ solver.allocated(talentId)[0] }}/{{ solver.allocated(talentId)[1] }}
 </p>
 
-<a class="tooltip-anchor" attr.data-wowhead="spell={{ spell.spell }}"></a>
