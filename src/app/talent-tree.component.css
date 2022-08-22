@@ -4,6 +4,13 @@
   max-width: 800px;
 }
 
+p.points {
+  text-align: end;
+
+  font-family: Monospace;
+  font-size: 24px;
+}
+
 connection {
   z-index: -1;
 }

@@ -31,9 +31,8 @@ export class TreeSolver {
     this.solution = constrained;
   }
 
-  public static fromUrl(tree: TalentTree): TreeSolver {
-    // TODO(shelbyd): Allow user to configure maxPoints.
-    return new TreeSolver(30, Graph.fromTree(tree));
+  public static fromTree(tree: TalentTree, maxPoints: number): TreeSolver {
+    return new TreeSolver(maxPoints, Graph.fromTree(tree));
   }
 
   public static fromGraph(points: number, graph: TalentGraph): TreeSolver {
@@ -73,6 +72,10 @@ export class TreeSolver {
 
   public isSelected(id: number): boolean {
     return this.solution.isSelected(id);
+  }
+
+  public usedPoints(): number {
+    return this.solution.totalPoints();
   }
 }
 

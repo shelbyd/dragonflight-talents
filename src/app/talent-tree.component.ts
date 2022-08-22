@@ -20,20 +20,32 @@ export class TalentTreeComponent {
   @Input() tree!: TalentTree;
 
   @HostBinding('style.gridTemplateColumns') columns = 17;
-  @HostBinding('style.gridTemplateRows') rows = 10;
+  @HostBinding('style.gridTemplateRows')
+  get rows() {
+    const largestId =
+        Math.max(...Object.keys(this.tree.talents).map(id => +id));
+    return this.gridRow(largestId);
+  }
 
   @ViewChildren(TalentComponent) talentElements!: QueryList<TalentComponent>;
   showConnections = false;
 
+  maxPoints!: number;
+
   solver!: TreeSolver;
 
   ngOnInit() {
-    this.solver = TreeSolver.fromUrl(this.tree);
-    console.log('this.tree', this.tree);
+    this.maxPoints = this.defaultMaxPoints(this.tree);
+    this.solver = TreeSolver.fromTree(this.tree, this.maxPoints);
   }
 
   ngAfterViewInit() {
     setTimeout(() => { this.showConnections = true; }, 0);
+  }
+
+  defaultMaxPoints(tree: TalentTree): number {
+    const isClassTree = tree.id <= 13;
+    return isClassTree ? 31 : 30;
   }
 
   gridColumn(cell: number): number { return cell % this.columns + 1; }
