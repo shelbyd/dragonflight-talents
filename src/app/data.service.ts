@@ -25,6 +25,14 @@ export interface Talent {
   spells: Spell[];
   requires: number[];
   requiredPoints: number;
+
+  type: TalentType;
+}
+
+export enum TalentType {
+  ABILITY = 1,
+  PASSIVE = 2,
+  CHOICE = 3,
 }
 
 export interface Spell {

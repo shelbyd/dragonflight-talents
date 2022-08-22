@@ -18,11 +18,33 @@
   top: 0;
   bottom: 0;
 
-  border-radius: 50%;
-
   background-position: center;
   background-repeat: none;
   background-size: cover;
+}
+
+.background-image.passive-talent {
+  border-radius: 50%;
+}
+
+.background-image.ability-talent {
+  border-radius: 15%;
+}
+
+.background-image.choice-talent {
+  --notch: 29%;
+
+  /* Octagon */
+  clip-path: polygon(
+    var(--notch) 0%,
+    calc(100% - var(--notch)) 0%,
+    100% var(--notch),
+    100% calc(100% - var(--notch)),
+    calc(100% - var(--notch)) 100%,
+    var(--notch) 100%,
+    0% calc(100% - var(--notch)),
+    0% var(--notch)
+  );
 }
 
 .background-image:not(.active) {

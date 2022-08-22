@@ -1,6 +1,6 @@
 import {Component, ElementRef, HostBinding, Input} from '@angular/core';
 
-import {Talent} from './data.service';
+import {Talent, TalentType} from './data.service';
 import {TreeSolver} from './tree_solver';
 
 @Component({
@@ -24,6 +24,19 @@ export class TalentComponent {
   };
 
   get spell() { return this.talent.spells[0]; }
+
+  get talentType() {
+    const type = this.talent.type;
+    const known = {
+      [TalentType.ABILITY] : 'ability',
+      [TalentType.PASSIVE] : 'passive',
+      [TalentType.CHOICE] : 'choice',
+    }[type];
+    if (known == null) {
+      throw new Error(`unknown: ${type}`);
+    }
+    return known;
+  }
 
   constructor(readonly element: ElementRef) {}
 
