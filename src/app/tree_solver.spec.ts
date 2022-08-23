@@ -3,7 +3,6 @@ import {
   Graph,
   PartialSolution,
   Problem,
-  solutionExists,
   TreeSolver
 } from './tree_solver';
 

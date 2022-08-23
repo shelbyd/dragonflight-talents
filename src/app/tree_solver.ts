@@ -343,6 +343,7 @@ export class Problem {
     const empty = this.graph.nodeIds.filter(n => ps.getPoints(n) === null);
     return sortByKey(empty, (n) => {
       return [
+        ps.optionsFor(n, this).length,
         this.graph.weight(n),
         ordRev(n),
       ];
@@ -353,7 +354,7 @@ export class Problem {
 export class PartialSolution {
   private inferred = new Map<number, number>();
 
-  private options = new Map<number, number[]>();
+  private partiallyDefined = new Map<number, PartiallyDefined>();
 
   constructor(private readonly user = new Map<number, number>()) {}
 
@@ -372,38 +373,17 @@ export class PartialSolution {
   }
 
   infer(id: number, value: number) {
-    this.options.delete(id);
-
     if (this.user.has(id))
       throw new Error(`Tried to infer id ${id} with user ${this.user.get(id)}`);
 
+    this.partiallyDefined.delete(id);
     this.inferred.set(id, value);
-  }
-
-  setOptions(id: number, opts: number[]) {
-    if (opts.length === 0) {
-      throw new Error(`Tried to assign no options to ${id}`);
-    } else if (opts.length === 1) {
-      this.infer(id, opts[0]);
-    } else {
-      this.options.set(id, opts);
-    }
-  }
-
-  imutSetOptions(id: number, opts: number[]) {
-    const existing = this.options.get(id);
-    if (JSON.stringify(existing) === JSON.stringify(opts))
-      return this;
-
-    const clone = this.clone();
-    clone.setOptions(id, opts);
-    return clone;
   }
 
   clone(): PartialSolution {
     const result = new PartialSolution(this.user);
     result.inferred = new Map(this.inferred);
-    result.options = new Map(this.options);
+    result.partiallyDefined = new Map(this.partiallyDefined);
     return result;
   }
 
@@ -417,15 +397,96 @@ export class PartialSolution {
     return this.user.get(id) ?? this.inferred.get(id) ?? null;
   }
 
+  unexploredFor(id: number, problem: Problem): number[] {
+    if (this.getPoints(id) != null)
+      return [];
+
+    if (!this.partiallyDefined.has(id)) {
+      this.partiallyDefined.set(id, {
+        valid : [],
+        unknown : problem.optionsFor(id),
+      });
+    }
+
+    return this.partiallyDefined.get(id)!.unknown;
+  }
+
+  private ensurePartiallyDefined(id: number, problem: Problem): PartiallyDefined
+      |null {
+    if (this.getPoints(id) != null)
+      return null;
+
+    if (!this.partiallyDefined.has(id)) {
+      this.partiallyDefined.set(id, {
+        valid : [],
+        unknown : problem.optionsFor(id),
+      });
+    }
+
+    return this.partiallyDefined.get(id)!;
+  }
+
+  setValid(id: number, points: number, problem: Problem): PartialSolution|null {
+    const pd = this.ensurePartiallyDefined(id, problem);
+    if (pd == null)
+      return this;
+
+    if (pd.valid.includes(points))
+      return this;
+    if (!pd.unknown.includes(points))
+      return this;
+
+    const newPd = {
+      valid : [...pd.valid, points ],
+      unknown : pd.unknown.filter(p => p !== points),
+    };
+    return this.inferFromPartial(id, newPd);
+  }
+
+  setInvalid(id: number, points: number, problem: Problem): PartialSolution
+      |null {
+    const pd = this.ensurePartiallyDefined(id, problem);
+    if (pd == null)
+      return this;
+
+    if (pd.valid.includes(points)) {
+      throw new Error(`Set known valid as invalid ${id} @ ${points}`);
+    }
+    if (!pd.unknown.includes(points))
+      return this;
+
+    const newPd = {
+      valid : pd.valid,
+      unknown : pd.unknown.filter(p => p !== points),
+    };
+    return this.inferFromPartial(id, newPd);
+  }
+
+  private inferFromPartial(id: number, pd: PartiallyDefined): PartialSolution
+      |null {
+    if (pd.valid.length === 0 && pd.unknown.length === 0)
+      return null;
+
+    const clone = this.clone();
+    if (pd.valid.length === 1 && pd.unknown.length === 0) {
+      clone.partiallyDefined.delete(id);
+      clone.inferred.set(id, pd.valid[0]);
+    } else {
+      clone.partiallyDefined.set(id, pd);
+    }
+    return clone;
+  }
+
   optionsFor(id: number, problem: Problem): number[] {
     const points = this.getPoints(id);
     if (points != null)
       return [ points ];
 
-    if (!this.options.has(id)) {
-      this.options.set(id, problem.optionsFor(id));
-    }
-    return this.options.get(id)!;
+    const pd = this.ensurePartiallyDefined(id, problem);
+    if (pd == null)
+      return [];
+
+    return [...pd.valid, ...pd.unknown ];
   }
 
   allocated(): Array<[ number, number ]> {
@@ -435,60 +496,60 @@ export class PartialSolution {
   isSelected(id: number): boolean { return this.user.has(id); }
 }
 
+interface PartiallyDefined {
+  valid: number[];
+  unknown: number[];
+}
+
 export function constrain(
     ps: PartialSolution,
     problem: Problem,
     ): PartialSolution|null {
-  const evals: any = [];
+  let result = ps;
 
-  const result = (() => {
-    let result = ps;
+  while (true) {
+    const origResult = result;
 
-    while (true) {
-      const origResult = result;
+    for (const node of problem.hintConstrainOrder(ps)) {
+      const toExplore = result.unexploredFor(node, problem);
 
-      for (const node of problem.hintConstrainOrder(ps)) {
-        const opts = result.optionsFor(node, problem);
-        if (opts.length === 1)
-          continue;
+      for (const explore of toExplore) {
+        const clone = result.clone();
+        clone.infer(node, explore);
 
-        const valid = opts.filter(opt => {
-          const clone = result.clone();
-          clone.infer(node, opt);
-
-          calls = 0;
-          const s = solutionExists(clone, problem);
-          evals.push({node, opt, calls, exists : s});
-
-          return s;
-        });
-
-        if (valid.length === 0) {
-          return null;
+        const solution = findSolution(clone, problem);
+        if (solution == null) {
+          const set = result.setInvalid(node, explore, problem);
+          if (set == null)
+            return null;
+          result = set;
         } else {
-          result = result.imutSetOptions(node, valid);
+          for (const node of problem.graph.nodeIds) {
+            const p = solution.getPoints(node);
+            if (p == null)
+              continue;
+            const set = result.setValid(node, p, problem);
+            if (set == null)
+              return null;
+            result = set;
+          }
         }
       }
-
-      if (result === origResult)
-        return result;
     }
-  })();
 
-  console.table(evals);
-  return result;
+    if (result === origResult)
+      return result;
+  }
 }
 
-let calls = 0;
-
-export function solutionExists(ps: PartialSolution, problem: Problem): boolean {
-  calls += 1;
+export function findSolution(ps: PartialSolution,
+                             problem: Problem): PartialSolution|null {
   const validity = problem.validity(ps);
   switch (validity) {
   case 'valid':
-    return true;
+    return ps;
   case 'invalid':
-    return false;
+    return null;
   case 'incomplete':
     break;
   default:
@@ -498,17 +559,21 @@ export function solutionExists(ps: PartialSolution, problem: Problem): boolean {
   const withoutZeros = problem.graph.nodeIds.filter(n => ps.getPoints(n) === 0)
                            .reduce((p, node) => p.without(node), problem);
   if (withoutZeros != problem) {
-    return solutionExists(ps, withoutZeros);
+    return findSolution(ps, withoutZeros);
   }
 
   const checkNode = problem.searchHint(ps);
   if (checkNode == null)
-    return false;
+    return null;
 
   const opts = ps.optionsFor(checkNode, problem);
-  return opts.some(opt => {
+  for (const opt of opts) {
     const clone = ps.clone();
     clone.infer(checkNode, opt);
-    return solutionExists(clone, problem);
-  });
+    const s = findSolution(clone, problem);
+    if (s != null)
+      return s;
+  }
+
+  return null;
 }
