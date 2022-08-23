@@ -9,7 +9,7 @@
     <a
         class="tooltip-anchor"
         href="https://www.wowhead.com/beta/spell={{ spell.spell }}"
-        (click)="selectSpell(i)"
+        (click)="$event.preventDefault(); selectSpell(i)"
         (contextmenu)="$event.preventDefault(); clearSpell(i)"
       ></a>
   </div>

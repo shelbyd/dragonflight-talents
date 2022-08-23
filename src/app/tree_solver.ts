@@ -44,7 +44,8 @@ export class TreeSolver {
     const options = this.problem.optionsFor(id).filter(o => o > current);
     options.sort((a, b) => a - b);
     for (const o of options) {
-      if (this.trySet(id, o)) return;
+      if (this.trySet(id, o))
+        return;
     }
   }
   public tryUnselect(id: number) {
@@ -52,7 +53,8 @@ export class TreeSolver {
     const options = this.problem.optionsFor(id).filter(o => o < current);
     options.sort((a, b) => b - a);
     for (const o of options) {
-      if (this.trySet(id, o)) return;
+      if (this.trySet(id, o))
+        return;
     }
   }
 
@@ -290,13 +292,15 @@ export class Problem {
   }
 
   private partialValidity(ps: PartialSolution): Validity {
+    let anyIncomplete = false;
     for (const n of this.graph.nodeIds) {
       const v = this.incomingValidity(n, ps);
-      if (v !== 'valid')
+      if (v === 'invalid')
         return v;
+      anyIncomplete = anyIncomplete || v === 'incomplete';
     }
 
-    return 'valid';
+    return anyIncomplete ? 'incomplete' : 'valid';
   }
 
   private incomingValidity(id: number, ps: PartialSolution): Validity {
@@ -328,9 +332,8 @@ export class Problem {
         n => this.incomingValidity(n, ps) === 'incomplete');
     if (missingInc != null) {
       const missing = this.graph.get(missingInc)
-                          .requires.find(n => ps.getPoints(n) === null);
-      if (missing != null)
-        return missing;
+                          .requires.find(n => ps.getPoints(n) === null)!;
+      return missing;
     }
 
     return this.hintConstrainOrder(ps)[0] ?? null;
@@ -436,35 +439,50 @@ export function constrain(
     ps: PartialSolution,
     problem: Problem,
     ): PartialSolution|null {
-  let result = ps;
+  const evals: any = [];
 
-  while (true) {
-    const origResult = result;
+  const result = (() => {
+    let result = ps;
 
-    for (const node of problem.hintConstrainOrder(ps)) {
-      const opts = result.optionsFor(node, problem);
-      if (opts.length === 1)
-        continue;
+    while (true) {
+      const origResult = result;
 
-      const valid = opts.filter(opt => {
-        const clone = result.clone();
-        clone.infer(node, opt);
-        return solutionExists(clone, problem);
-      });
+      for (const node of problem.hintConstrainOrder(ps)) {
+        const opts = result.optionsFor(node, problem);
+        if (opts.length === 1)
+          continue;
 
-      if (valid.length === 0) {
-        return null;
-      } else {
-        result = result.imutSetOptions(node, valid);
+        const valid = opts.filter(opt => {
+          const clone = result.clone();
+          clone.infer(node, opt);
+
+          calls = 0;
+          const s = solutionExists(clone, problem);
+          evals.push({node, opt, calls, exists : s});
+
+          return s;
+        });
+
+        if (valid.length === 0) {
+          return null;
+        } else {
+          result = result.imutSetOptions(node, valid);
+        }
       }
-    }
 
-    if (result === origResult)
-      return result;
-  };
+      if (result === origResult)
+        return result;
+    }
+  })();
+
+  console.table(evals);
+  return result;
 }
 
+let calls = 0;
+
 export function solutionExists(ps: PartialSolution, problem: Problem): boolean {
+  calls += 1;
   const validity = problem.validity(ps);
   switch (validity) {
   case 'valid':
