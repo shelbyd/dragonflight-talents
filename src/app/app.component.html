@@ -1,1 +1,10 @@
-<talent-tree [tree]="monkTree"></talent-tree>
+<div class="select-tree">
+  <wowhead-icon
+      *ngFor="let tree of trees"
+      [icon]="icon(tree)"
+      (click)="selectTree(tree)"
+      ></wowhead-icon>
+</div>
+
+<talent-tree *ngIf="tree != null" [tree]="tree">
+</talent-tree>

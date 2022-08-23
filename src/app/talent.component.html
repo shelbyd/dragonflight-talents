@@ -8,7 +8,7 @@
       [style.backgroundImage]="getBackgroundImage(spell)">
     <a
         class="tooltip-anchor"
-        attr.data-wowhead="spell={{ spell.spell }}"
+        href="https://www.wowhead.com/beta/spell={{ spell.spell }}"
         (click)="selectSpell(i)"
         (contextmenu)="$event.preventDefault(); clearSpell(i)"
       ></a>

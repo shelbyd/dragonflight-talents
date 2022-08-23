@@ -36,3 +36,21 @@ export class OrdRev<T> {
 export function range(n: number): number[] {
   return [...new Array(n).keys() ];
 }
+
+export function maxByKey<T, K extends Ord>(ts: T[], getKey: (t: T) => K): T|null {
+  if (ts.length === 0) return null;
+
+  let max = ts[0];
+  let maxKey = getKey(max);
+
+  for (let i = 1; i < ts.length; i++) {
+    const t = ts[i];
+    const key = getKey(t);
+    if (compare(key, maxKey) > 0) {
+      max = t;
+      maxKey = key;
+    }
+  }
+
+  return max;
+}

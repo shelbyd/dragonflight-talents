@@ -5,13 +5,15 @@ import { AppComponent } from './app.component';
 import { TalentTreeComponent } from './talent-tree.component';
 import { TalentComponent } from './talent.component';
 import { ConnectionComponent } from './connection.component';
+import { WowheadIconComponent } from './wowhead-icon.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     TalentTreeComponent,
     TalentComponent,
-    ConnectionComponent
+    ConnectionComponent,
+    WowheadIconComponent
   ],
   imports: [
     BrowserModule

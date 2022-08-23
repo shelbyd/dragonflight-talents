@@ -4,6 +4,7 @@ import {
   HostBinding,
   Input,
   QueryList,
+  SimpleChanges,
   ViewChildren
 } from '@angular/core';
 
@@ -34,12 +35,20 @@ export class TalentTreeComponent {
 
   solver!: TreeSolver;
 
-  ngOnInit() {
-    this.maxPoints = this.defaultMaxPoints(this.tree);
-    this.solver = TreeSolver.fromTree(this.tree, this.maxPoints);
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['tree']) {
+      this.maxPoints = this.defaultMaxPoints(this.tree);
+      this.solver = TreeSolver.fromTree(this.tree, this.maxPoints);
+      this.showConnectionsAfterTimeout();
+    }
   }
 
   ngAfterViewInit() {
+    this.showConnectionsAfterTimeout();
+  }
+
+  private showConnectionsAfterTimeout() {
+    this.showConnections = false;
     setTimeout(() => { this.showConnections = true; }, 0);
   }
 
@@ -57,7 +66,11 @@ export class TalentTreeComponent {
   onTalentRightClick(id: number) { this.solver.tryUnselect(id); }
 
   getElement(talentId: number): ElementRef {
-    return this.talentElements.find(el => el.talentId === talentId)!.element;
+    const el = this.talentElements.find(el => el.talentId === talentId);
+    if (el == null) {
+      throw new Error(`Missing talent with id ${talentId}`);
+    }
+    return el.element;
   }
 
   connections(): Array<[ number, number ]> {

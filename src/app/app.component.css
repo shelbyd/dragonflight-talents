@@ -1,0 +1,26 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+talent-tree {
+  flex-grow: 1;
+}
+
+.select-tree {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+
+  max-width: 960px;
+  gap: 4px;
+}
+
+wowhead-icon {
+  width: 32px;
+  height: 32px;
+
+  cursor: pointer;
+}
