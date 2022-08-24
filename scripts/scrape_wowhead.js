@@ -6,8 +6,7 @@ const WH = {
       return WH.pageData[key];
     }
 
-    console.warn('Missing pageData for', key);
-    return {};
+    throw new Error(`Missing pageData for ${key}`);
   },
 
   Wow : {
