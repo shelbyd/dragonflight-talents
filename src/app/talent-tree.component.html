@@ -1,6 +1,6 @@
 <div class="header">
-  <h2 class="name">
-    {{ spec.name }} {{ class_.name }}
+  <h2 class="name" [style.color]="class_.color">
+    {{ spec.name === class_.name ? '' : spec.name }} {{ class_.name }}
   </h2>
 
   <p class="points">

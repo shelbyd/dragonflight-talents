@@ -5,6 +5,7 @@ const classes = (() => {
     icon: cl.getIconName(c),
     name: cl.getName(c),
     slug: cl.getSlug(c),
+    color: cl.getColor(c),
   }));
 })();
 console.log(JSON.stringify(classes));

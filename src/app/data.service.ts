@@ -52,6 +52,7 @@ export interface Class {
   icon: string;
   name: string;
   slug: string;
+  color: string;
 }
 
 export interface Spec {
@@ -67,25 +68,93 @@ export const CLASSES: Class[] = [
     "id" : 6,
     "icon" : "class_deathknight",
     "name" : "Death Knight",
-    "slug" : "death-knight"
+    "slug" : "death-knight",
+    "color" : "#c41e3a"
   },
   {
     "id" : 12,
     "icon" : "class_demonhunter",
     "name" : "Demon Hunter",
-    "slug" : "demon-hunter"
+    "slug" : "demon-hunter",
+    "color" : "#a330c9"
   },
-  {"id" : 11, "icon" : "class_druid", "name" : "Druid", "slug" : "druid"},
-  {"id" : 13, "icon" : "class_evoker", "name" : "Evoker", "slug" : "evoker"},
-  {"id" : 3, "icon" : "class_hunter", "name" : "Hunter", "slug" : "hunter"},
-  {"id" : 8, "icon" : "class_mage", "name" : "Mage", "slug" : "mage"},
-  {"id" : 10, "icon" : "class_monk", "name" : "Monk", "slug" : "monk"},
-  {"id" : 2, "icon" : "class_paladin", "name" : "Paladin", "slug" : "paladin"},
-  {"id" : 5, "icon" : "class_priest", "name" : "Priest", "slug" : "priest"},
-  {"id" : 4, "icon" : "class_rogue", "name" : "Rogue", "slug" : "rogue"},
-  {"id" : 7, "icon" : "class_shaman", "name" : "Shaman", "slug" : "shaman"},
-  {"id" : 9, "icon" : "class_warlock", "name" : "Warlock", "slug" : "warlock"},
-  {"id" : 1, "icon" : "class_warrior", "name" : "Warrior", "slug" : "warrior"}
+  {
+    "id" : 11,
+    "icon" : "class_druid",
+    "name" : "Druid",
+    "slug" : "druid",
+    "color" : "#ff7c0a"
+  },
+  {
+    "id" : 13,
+    "icon" : "class_evoker",
+    "name" : "Evoker",
+    "slug" : "evoker",
+    "color" : "#33937f"
+  },
+  {
+    "id" : 3,
+    "icon" : "class_hunter",
+    "name" : "Hunter",
+    "slug" : "hunter",
+    "color" : "#aad372"
+  },
+  {
+    "id" : 8,
+    "icon" : "class_mage",
+    "name" : "Mage",
+    "slug" : "mage",
+    "color" : "#3fc7eb"
+  },
+  {
+    "id" : 10,
+    "icon" : "class_monk",
+    "name" : "Monk",
+    "slug" : "monk",
+    "color" : "#00ff98"
+  },
+  {
+    "id" : 2,
+    "icon" : "class_paladin",
+    "name" : "Paladin",
+    "slug" : "paladin",
+    "color" : "#f48cba"
+  },
+  {
+    "id" : 5,
+    "icon" : "class_priest",
+    "name" : "Priest",
+    "slug" : "priest",
+    "color" : "#ffffff"
+  },
+  {
+    "id" : 4,
+    "icon" : "class_rogue",
+    "name" : "Rogue",
+    "slug" : "rogue",
+    "color" : "#fff468"
+  },
+  {
+    "id" : 7,
+    "icon" : "class_shaman",
+    "name" : "Shaman",
+    "slug" : "shaman",
+    "color" : "#0070dd"
+  },
+  {
+    "id" : 9,
+    "icon" : "class_warlock",
+    "name" : "Warlock",
+    "slug" : "warlock",
+    "color" : "#8788ee"
+  },
+  {
+    "id" : 1,
+    "icon" : "class_warrior",
+    "name" : "Warrior",
+    "slug" : "warrior",
+    "color" : "#c69b6d"
+  }
 ];
 
 export const SPECS: Spec[] = [
