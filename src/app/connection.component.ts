@@ -13,6 +13,7 @@ type Vec2 = {
   x: number; y : number;
 }
 
+let nextId = 0;
 const onInterval: {[id: number]: () => boolean} = {};
 const positionCheckInterval = setInterval(() => {
   for (const [id, on] of Object.entries(onInterval)) {
@@ -79,7 +80,7 @@ export class ConnectionComponent {
     let lastFrom = this.centerPoint(this.from);
     let lastTo = this.centerPoint(this.to);
 
-    onInterval[Math.random()] = () => {
+    onInterval[nextId++] = () => {
       if (this.destroyed)
         return false;
 
