@@ -2,10 +2,8 @@ import {Component, Inject} from '@angular/core';
 
 import {
   Class,
-  CLASSES,
   DataService,
   Spec,
-  SPECS,
   Spell,
   Talent,
   TalentTree,
@@ -18,24 +16,32 @@ import {maxByKey} from './utils';
   styleUrls : [ './app.component.css' ],
 })
 export class AppComponent {
-  trees: TalentTree[];
+  loaded = false;
+
+  trees!: TalentTree[];
+  classes!: Class[];
+  specs!: Spec[];
 
   selectedClass: Class|null = null;
   selectedSpec: Spec|null = null;
 
-  constructor(readonly dataService: DataService) {
-    this.trees = dataService.trees;
+  constructor(dataService: DataService) {
+    dataService.load().then(data => {
+      this.specs = data.specs;
+      this.classes = data.classes;
 
-    this.trees.sort((a, b) => a.id - b.id);
+      this.trees = data.trees;
+      this.trees.sort((a, b) => a.id - b.id);
+
+      this.loaded = true;
+    });
   }
 
-  classes(): Class[] { return CLASSES; }
-
-  specs(cl: Class): Spec[] {
+  specsFor(cl: Class): Spec[] {
     const classId = cl.id;
 
     const base = {...cl, classId};
-    return [ base, ...SPECS.filter(s => s.classId === classId) ];
+    return [ base, ...this.specs.filter(s => s.classId === classId) ];
   }
 
   hasTree(v: Class|Spec): boolean {
