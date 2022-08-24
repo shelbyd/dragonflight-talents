@@ -47,43 +47,312 @@ export interface TreeMeta {
   id: number;
 }
 
-export const TREE_META: {[id: number]: TreeMeta} = {
-  62 : {"icon" : "spell_holy_magicalsentry", "id" : 62},
-  63 : {"icon" : "spell_fire_firebolt02", "id" : 63},
-  64 : {"icon" : "spell_frost_frostbolt02", "id" : 64},
-  65 : {"icon" : "spell_holy_holybolt", "id" : 65},
-  66 : {"icon" : "ability_paladin_shieldofthetemplar", "id" : 66},
-  70 : {"icon" : "spell_holy_auraoflight", "id" : 70},
-  71 : {"icon" : "ability_warrior_savageblow", "id" : 71},
-  72 : {"icon" : "ability_warrior_innerrage", "id" : 72},
-  73 : {"icon" : "ability_warrior_defensivestance", "id" : 73},
-  102 : {"icon" : "spell_nature_starfall", "id" : 102},
-  103 : {"icon" : "ability_druid_catform", "id" : 103},
-  104 : {"icon" : "ability_racial_bearform", "id" : 104},
-  105 : {"icon" : "spell_nature_healingtouch", "id" : 105},
-  250 : {"icon" : "spell_deathknight_bloodpresence", "id" : 250},
-  251 : {"icon" : "spell_deathknight_frostpresence", "id" : 251},
-  252 : {"icon" : "spell_deathknight_unholypresence", "id" : 252},
-  253 : {"icon" : "ability_hunter_bestialdiscipline", "id" : 253},
-  254 : {"icon" : "ability_hunter_focusedaim", "id" : 254},
-  255 : {"icon" : "ability_hunter_camouflage", "id" : 255},
-  256 : {"icon" : "spell_holy_powerwordshield", "id" : 256},
-  257 : {"icon" : "spell_holy_guardianspirit", "id" : 257},
-  258 : {"icon" : "spell_shadow_shadowwordpain", "id" : 258},
-  259 : {"icon" : "ability_rogue_deadlybrew", "id" : 259},
-  260 : {"icon" : "ability_rogue_waylay", "id" : 260},
-  261 : {"icon" : "ability_stealth", "id" : 261},
-  262 : {"icon" : "spell_nature_lightning", "id" : 262},
-  263 : {"icon" : "spell_shaman_improvedstormstrike", "id" : 263},
-  264 : {"icon" : "spell_nature_magicimmunity", "id" : 264},
-  265 : {"icon" : "spell_shadow_deathcoil", "id" : 265},
-  266 : {"icon" : "spell_shadow_metamorphosis", "id" : 266},
-  267 : {"icon" : "spell_shadow_rainoffire", "id" : 267},
-  268 : {"icon" : "spell_monk_brewmaster_spec", "id" : 268},
-  269 : {"icon" : "spell_monk_windwalker_spec", "id" : 269},
-  270 : {"icon" : "spell_monk_mistweaver_spec", "id" : 270},
-  577 : {"icon" : "ability_demonhunter_specdps", "id" : 577},
-  581 : {"icon" : "ability_demonhunter_spectank", "id" : 581},
-  1467 : {"icon" : "classicon_evoker_devastation", "id" : 1467},
-  1468 : {"icon" : "classicon_evoker_preservation", "id" : 1468}
+export interface Class {
+  id: number;
+  icon: string;
+  name: string;
+  slug: string;
 }
+
+export interface Spec {
+  id: number;
+  icon: string;
+  name: string;
+  slug: string;
+  classId: number;
+}
+
+export const CLASSES: Class[] = [
+  {
+    "id" : 6,
+    "icon" : "class_deathknight",
+    "name" : "Death Knight",
+    "slug" : "death-knight"
+  },
+  {
+    "id" : 12,
+    "icon" : "class_demonhunter",
+    "name" : "Demon Hunter",
+    "slug" : "demon-hunter"
+  },
+  {"id" : 11, "icon" : "class_druid", "name" : "Druid", "slug" : "druid"},
+  {"id" : 13, "icon" : "class_evoker", "name" : "Evoker", "slug" : "evoker"},
+  {"id" : 3, "icon" : "class_hunter", "name" : "Hunter", "slug" : "hunter"},
+  {"id" : 8, "icon" : "class_mage", "name" : "Mage", "slug" : "mage"},
+  {"id" : 10, "icon" : "class_monk", "name" : "Monk", "slug" : "monk"},
+  {"id" : 2, "icon" : "class_paladin", "name" : "Paladin", "slug" : "paladin"},
+  {"id" : 5, "icon" : "class_priest", "name" : "Priest", "slug" : "priest"},
+  {"id" : 4, "icon" : "class_rogue", "name" : "Rogue", "slug" : "rogue"},
+  {"id" : 7, "icon" : "class_shaman", "name" : "Shaman", "slug" : "shaman"},
+  {"id" : 9, "icon" : "class_warlock", "name" : "Warlock", "slug" : "warlock"},
+  {"id" : 1, "icon" : "class_warrior", "name" : "Warrior", "slug" : "warrior"}
+];
+
+export const SPECS: Spec[] = [
+  {
+    "id" : 250,
+    "icon" : "spell_deathknight_bloodpresence",
+    "name" : "Blood",
+    "slug" : "blood",
+    "classId" : 6
+  },
+  {
+    "id" : 251,
+    "icon" : "spell_deathknight_frostpresence",
+    "name" : "Frost",
+    "slug" : "frost",
+    "classId" : 6
+  },
+  {
+    "id" : 252,
+    "icon" : "spell_deathknight_unholypresence",
+    "name" : "Unholy",
+    "slug" : "unholy",
+    "classId" : 6
+  },
+  {
+    "id" : 577,
+    "icon" : "ability_demonhunter_specdps",
+    "name" : "Havoc",
+    "slug" : "havoc",
+    "classId" : 12
+  },
+  {
+    "id" : 581,
+    "icon" : "ability_demonhunter_spectank",
+    "name" : "Vengeance",
+    "slug" : "vengeance",
+    "classId" : 12
+  },
+  {
+    "id" : 102,
+    "icon" : "spell_nature_starfall",
+    "name" : "Balance",
+    "slug" : "balance",
+    "classId" : 11
+  },
+  {
+    "id" : 103,
+    "icon" : "ability_druid_catform",
+    "name" : "Feral",
+    "slug" : "feral",
+    "classId" : 11
+  },
+  {
+    "id" : 104,
+    "icon" : "ability_racial_bearform",
+    "name" : "Guardian",
+    "slug" : "guardian",
+    "classId" : 11
+  },
+  {
+    "id" : 105,
+    "icon" : "spell_nature_healingtouch",
+    "name" : "Restoration",
+    "slug" : "restoration",
+    "classId" : 11
+  },
+  {
+    "id" : 1467,
+    "icon" : "classicon_evoker_devastation",
+    "name" : "Devastation",
+    "slug" : "devastation",
+    "classId" : 13
+  },
+  {
+    "id" : 1468,
+    "icon" : "classicon_evoker_preservation",
+    "name" : "Preservation",
+    "slug" : "preservation",
+    "classId" : 13
+  },
+  {
+    "id" : 253,
+    "icon" : "ability_hunter_bestialdiscipline",
+    "name" : "Beast Mastery",
+    "slug" : "beast-mastery",
+    "classId" : 3
+  },
+  {
+    "id" : 254,
+    "icon" : "ability_hunter_focusedaim",
+    "name" : "Marksmanship",
+    "slug" : "marksmanship",
+    "classId" : 3
+  },
+  {
+    "id" : 255,
+    "icon" : "ability_hunter_camouflage",
+    "name" : "Survival",
+    "slug" : "survival",
+    "classId" : 3
+  },
+  {
+    "id" : 62,
+    "icon" : "spell_holy_magicalsentry",
+    "name" : "Arcane",
+    "slug" : "arcane",
+    "classId" : 8
+  },
+  {
+    "id" : 63,
+    "icon" : "spell_fire_firebolt02",
+    "name" : "Fire",
+    "slug" : "fire",
+    "classId" : 8
+  },
+  {
+    "id" : 64,
+    "icon" : "spell_frost_frostbolt02",
+    "name" : "Frost",
+    "slug" : "frost",
+    "classId" : 8
+  },
+  {
+    "id" : 268,
+    "icon" : "spell_monk_brewmaster_spec",
+    "name" : "Brewmaster",
+    "slug" : "brewmaster",
+    "classId" : 10
+  },
+  {
+    "id" : 270,
+    "icon" : "spell_monk_mistweaver_spec",
+    "name" : "Mistweaver",
+    "slug" : "mistweaver",
+    "classId" : 10
+  },
+  {
+    "id" : 269,
+    "icon" : "spell_monk_windwalker_spec",
+    "name" : "Windwalker",
+    "slug" : "windwalker",
+    "classId" : 10
+  },
+  {
+    "id" : 65,
+    "icon" : "spell_holy_holybolt",
+    "name" : "Holy",
+    "slug" : "holy",
+    "classId" : 2
+  },
+  {
+    "id" : 66,
+    "icon" : "ability_paladin_shieldofthetemplar",
+    "name" : "Protection",
+    "slug" : "protection",
+    "classId" : 2
+  },
+  {
+    "id" : 70,
+    "icon" : "spell_holy_auraoflight",
+    "name" : "Retribution",
+    "slug" : "retribution",
+    "classId" : 2
+  },
+  {
+    "id" : 256,
+    "icon" : "spell_holy_powerwordshield",
+    "name" : "Discipline",
+    "slug" : "discipline",
+    "classId" : 5
+  },
+  {
+    "id" : 257,
+    "icon" : "spell_holy_guardianspirit",
+    "name" : "Holy",
+    "slug" : "holy",
+    "classId" : 5
+  },
+  {
+    "id" : 258,
+    "icon" : "spell_shadow_shadowwordpain",
+    "name" : "Shadow",
+    "slug" : "shadow",
+    "classId" : 5
+  },
+  {
+    "id" : 259,
+    "icon" : "ability_rogue_deadlybrew",
+    "name" : "Assassination",
+    "slug" : "assassination",
+    "classId" : 4
+  },
+  {
+    "id" : 260,
+    "icon" : "ability_rogue_waylay",
+    "name" : "Outlaw",
+    "slug" : "outlaw",
+    "classId" : 4
+  },
+  {
+    "id" : 261,
+    "icon" : "ability_stealth",
+    "name" : "Subtlety",
+    "slug" : "subtlety",
+    "classId" : 4
+  },
+  {
+    "id" : 262,
+    "icon" : "spell_nature_lightning",
+    "name" : "Elemental",
+    "slug" : "elemental",
+    "classId" : 7
+  },
+  {
+    "id" : 263,
+    "icon" : "spell_shaman_improvedstormstrike",
+    "name" : "Enhancement",
+    "slug" : "enhancement",
+    "classId" : 7
+  },
+  {
+    "id" : 264,
+    "icon" : "spell_nature_magicimmunity",
+    "name" : "Restoration",
+    "slug" : "restoration",
+    "classId" : 7
+  },
+  {
+    "id" : 265,
+    "icon" : "spell_shadow_deathcoil",
+    "name" : "Affliction",
+    "slug" : "affliction",
+    "classId" : 9
+  },
+  {
+    "id" : 266,
+    "icon" : "spell_shadow_metamorphosis",
+    "name" : "Demonology",
+    "slug" : "demonology",
+    "classId" : 9
+  },
+  {
+    "id" : 267,
+    "icon" : "spell_shadow_rainoffire",
+    "name" : "Destruction",
+    "slug" : "destruction",
+    "classId" : 9
+  },
+  {
+    "id" : 71,
+    "icon" : "ability_warrior_savageblow",
+    "name" : "Arms",
+    "slug" : "arms",
+    "classId" : 1
+  },
+  {
+    "id" : 72,
+    "icon" : "ability_warrior_innerrage",
+    "name" : "Fury",
+    "slug" : "fury",
+    "classId" : 1
+  },
+  {
+    "id" : 73,
+    "icon" : "ability_warrior_defensivestance",
+    "name" : "Protection",
+    "slug" : "protection",
+    "classId" : 1
+  }
+];

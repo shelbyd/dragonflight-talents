@@ -2,7 +2,10 @@
   {{ solver.usedPoints() }} / {{ maxPoints }}
 </p>
 
-<div class="tree">
+<div
+    class="tree"
+    [style.gridTemplateColumns]="columns"
+    [style.gridTemplateRows]="rows">
   <talent
       *ngFor="let talentCell of tree.talents | keyvalue"
       [talentId]="+talentCell.key"

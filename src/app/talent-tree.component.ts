@@ -20,8 +20,7 @@ import {TreeSolver} from './tree_solver';
 export class TalentTreeComponent {
   @Input() tree!: TalentTree;
 
-  @HostBinding('style.gridTemplateColumns') columns = 17;
-  @HostBinding('style.gridTemplateRows')
+  columns = 17;
   get rows() {
     const largestId =
         Math.max(...Object.keys(this.tree.talents).map(id => +id));
@@ -43,9 +42,7 @@ export class TalentTreeComponent {
     }
   }
 
-  ngAfterViewInit() {
-    this.showConnectionsAfterTimeout();
-  }
+  ngAfterViewInit() { this.showConnectionsAfterTimeout(); }
 
   private showConnectionsAfterTimeout() {
     this.showConnections = false;

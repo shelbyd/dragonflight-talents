@@ -1,11 +1,14 @@
 import {Component, Inject} from '@angular/core';
 
 import {
+  Class,
+  CLASSES,
   DataService,
+  Spec,
+  SPECS,
   Spell,
   Talent,
   TalentTree,
-  TREE_META
 } from './data.service';
 import {maxByKey} from './utils';
 
@@ -16,7 +19,9 @@ import {maxByKey} from './utils';
 })
 export class AppComponent {
   trees: TalentTree[];
-  selectedTree: TalentTree|null = null;
+
+  selectedClass: Class|null = null;
+  selectedSpec: Spec|null = null;
 
   constructor(readonly dataService: DataService) {
     this.trees = dataService.trees;
@@ -24,13 +29,28 @@ export class AppComponent {
     this.trees.sort((a, b) => a.id - b.id);
   }
 
-  selectTree(tree: TalentTree) {
-    console.log(`Selecting tree ${tree.id}`);
-    this.selectedTree = tree;
+  classes(): Class[] { return CLASSES; }
+
+  specs(): Spec[] {
+    if (this.selectedClass == null)
+      return [];
+
+    const classId = this.selectedClass.id;
+
+    const base = {...this.selectedClass, classId};
+    return [ base, ...SPECS.filter(s => s.classId === classId) ];
+  }
+
+  selectedTree(): TalentTree|null {
+    const spec = this.selectedSpec;
+    if (spec == null)
+      return null;
+
+    return this.trees.find(t => t.id === spec.id) ?? null;
   }
 
   icon(tree: TalentTree): string {
-    const override = TREE_META[tree.id];
+    const override = SPECS.find(s => s.id === tree.id);
     if (override != null) {
       return override.icon;
     }

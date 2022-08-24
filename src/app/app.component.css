@@ -8,7 +8,7 @@ talent-tree {
   flex-grow: 1;
 }
 
-.select-tree {
+.select-list {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;

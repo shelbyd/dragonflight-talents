@@ -5,6 +5,11 @@
 
 .tree {
   display: grid;
+
+  align-items: center;
+  justify-items: center;
+
+  gap: 20px;
 }
 
 p.points {

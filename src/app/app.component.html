@@ -1,11 +1,20 @@
-<div class="select-tree">
+<div class="select-list">
   <wowhead-icon
-      *ngFor="let tree of trees"
-      [class.active]="selectedTree == tree"
-      [icon]="icon(tree)"
-      (click)="selectTree(tree)"
+      *ngFor="let c of classes()"
+      [class.active]="selectedClass == c"
+      [icon]="c.icon"
+      (click)="selectedClass = c"
       ></wowhead-icon>
 </div>
 
-<talent-tree *ngIf="selectedTree != null" [tree]="selectedTree">
+<div class="select-list">
+  <wowhead-icon
+      *ngFor="let spec of specs()"
+      [class.active]="selectedSpec == spec"
+      [icon]="spec.icon"
+      (click)="selectedSpec = spec"
+      ></wowhead-icon>
+</div>
+
+<talent-tree *ngIf="selectedTree() != null" [tree]="selectedTree()!">
 </talent-tree>
