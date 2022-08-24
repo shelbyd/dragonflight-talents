@@ -16,7 +16,7 @@ import {maxByKey} from './utils';
 })
 export class AppComponent {
   trees: TalentTree[];
-  tree: TalentTree|null = null;
+  selectedTree: TalentTree|null = null;
 
   constructor(readonly dataService: DataService) {
     this.trees = dataService.trees;
@@ -26,7 +26,7 @@ export class AppComponent {
 
   selectTree(tree: TalentTree) {
     console.log(`Selecting tree ${tree.id}`);
-    this.tree = tree;
+    this.selectedTree = tree;
   }
 
   icon(tree: TalentTree): string {

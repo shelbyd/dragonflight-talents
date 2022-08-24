@@ -21,8 +21,12 @@
   filter: grayscale(100%);
 }
 
+.root .background-image {
+  border: 1px solid #ccc;
+}
+
 .selected .background-image {
-  border: 2px solid orange;
+  border-color: orange;
   box-shadow: 0px 0px 10px orange;
 }
 
@@ -101,8 +105,6 @@ pre {
   color: #fff;
   text-shadow: 1px 1px 0 #242424, 0 1px 0 #242424, -1px 1px 0 #242424, -1px 0 0 #242424, -2px 0 #242424, -1px 0 #242424, 0px 0 #242424, 1px 0 0 #242424;
   pointer-events: none;
-
-  font-family: Monospace;
 }
 
 a.tooltip-anchor {

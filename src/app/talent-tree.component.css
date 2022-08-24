@@ -8,12 +8,9 @@
 }
 
 p.points {
-  text-align: end;
-
-  font-family: Monospace;
-  font-size: 24px;
-
   margin: 0;
+  text-align: end;
+  font-size: 24px;
 }
 
 connection {

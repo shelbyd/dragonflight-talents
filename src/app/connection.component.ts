@@ -13,12 +13,22 @@ type Vec2 = {
   x: number; y : number;
 }
 
+const onInterval: {[id: number]: () => boolean} = {};
+const positionCheckInterval = setInterval(() => {
+  for (const [id, on] of Object.entries(onInterval)) {
+    if (!on()) {
+      delete onInterval[+id];
+    }
+  }
+}, 100);
+
 @Component({
   selector : 'connection',
   template : ``,
   styleUrls : [ './connection.component.css' ],
   changeDetection : ChangeDetectionStrategy.OnPush,
-}) export class ConnectionComponent {
+})
+export class ConnectionComponent {
   @Input() from!: ElementRef;
   @Input() to!: ElementRef;
 
@@ -65,25 +75,27 @@ type Vec2 = {
   private destroyed = false;
   ngOnDestroy() { this.destroyed = true; }
 
-  async pollForMovement() {
+  pollForMovement() {
     let lastFrom = this.centerPoint(this.from);
     let lastTo = this.centerPoint(this.to);
 
-    while (!this.destroyed) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+    onInterval[Math.random()] = () => {
+      if (this.destroyed)
+        return false;
 
       const thisFrom = this.centerPoint(this.from);
       const thisTo = this.centerPoint(this.to);
 
       const same = eq(lastFrom, thisFrom) && eq(lastTo, thisTo);
-      if (same)
-        continue;
+      if (!same) {
+        this.batchCheck.run(() => { this.cdRef.markForCheck(); });
 
-      this.batchCheck.run(() => { this.cdRef.markForCheck(); });
+        lastFrom = thisFrom;
+        lastTo = thisTo;
+      }
 
-      lastFrom = thisFrom;
-      lastTo = thisTo;
-    }
+      return true;
+    };
   }
 
   delta() {
@@ -99,8 +111,8 @@ type Vec2 = {
   centerPoint(el: ElementRef): Vec2 {
     const rect = el.nativeElement.getBoundingClientRect();
     return {
-      x : rect.x + (rect.width / 2),
-      y : rect.y + (rect.height / 2),
+      x : rect.x + (rect.width / 2) + window.scrollX,
+      y : rect.y + (rect.height / 2) + window.scrollY,
     };
   }
 }
