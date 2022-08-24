@@ -32,3 +32,9 @@ wowhead-icon {
 wowhead-icon.active {
   border: 2px solid orange;
 }
+
+wowhead-icon.disabled {
+  filter: grayscale(100%);
+  pointer-events: none;
+  cursor: default;
+}

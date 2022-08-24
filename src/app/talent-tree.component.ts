@@ -8,9 +8,16 @@ import {
   ViewChildren
 } from '@angular/core';
 
-import {TalentTree} from './data.service';
+import {Class, Spec, TalentTree} from './data.service';
 import {TalentComponent} from './talent.component';
 import {TreeSolver} from './tree_solver';
+
+const MARGIN_OVERRIDE: {[id: number]: string} = {
+  71: '0px 0px',
+  72: '0px 0px',
+  73: '0px 8px',
+  4: '0px 0px',
+};
 
 @Component({
   selector : 'talent-tree',
@@ -19,6 +26,8 @@ import {TreeSolver} from './tree_solver';
 })
 export class TalentTreeComponent {
   @Input() tree!: TalentTree;
+  @Input('class') class_!: Class;
+  @Input() spec!: Spec;
 
   columns = 17;
   get rows() {
@@ -36,9 +45,11 @@ export class TalentTreeComponent {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['tree']) {
+      console.log('this.tree.id', this.tree.id);
       this.maxPoints = this.defaultMaxPoints(this.tree);
       this.solver = TreeSolver.fromTree(this.tree, this.maxPoints);
       this.showConnectionsAfterTimeout();
+      this.calculateColumnAdjustment();
     }
   }
 
@@ -54,7 +65,26 @@ export class TalentTreeComponent {
     return isClassTree ? 31 : 30;
   }
 
-  gridColumn(cell: number): number { return cell % this.columns + 1; }
+  private columnMap = new Map<number, number>();
+
+  private calculateColumnAdjustment() {
+    this.columnMap = new Map();
+
+    const columns =
+        new Set(Object.keys(this.tree.talents).map(c => this.gridColumn(+c)));
+    const sorted = [...columns ];
+    sorted.sort((a, b) => a - b);
+
+    let realColumn = 1;
+    for (const s of sorted) {
+      this.columnMap.set(s, realColumn++);
+    }
+  }
+
+  gridColumn(cell: number): number {
+    const naive = cell % this.columns;
+    return this.columnMap.get(naive) ?? naive;
+  }
 
   gridRow(cell: number): number { return Math.floor(cell / this.columns) + 1; }
 
@@ -79,4 +109,8 @@ export class TalentTreeComponent {
   }
 
   trackByIndex(i: number): number { return i; }
+
+  margin(): string {
+    return MARGIN_OVERRIDE[this.tree.id] || '0px 16px';
+  }
 }

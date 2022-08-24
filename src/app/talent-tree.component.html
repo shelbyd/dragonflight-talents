@@ -1,6 +1,12 @@
-<p class="points">
-  {{ solver.usedPoints() }} / {{ maxPoints }}
-</p>
+<div class="header">
+  <h2 class="name">
+    {{ spec.name }} {{ class_.name }}
+  </h2>
+
+  <p class="points">
+    {{ solver.usedPoints() }} / {{ maxPoints }}
+  </p>
+</div>
 
 <div
     class="tree"
@@ -17,6 +23,7 @@
 
       [style.gridColumn]="gridColumn(+talentCell.key)"
       [style.gridRow]="gridRow(+talentCell.key)"
+      [style.margin]="margin()"
       >
   </talent>
 

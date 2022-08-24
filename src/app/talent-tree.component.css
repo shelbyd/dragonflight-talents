@@ -1,20 +1,25 @@
-:host {
-  min-width: 700px;
-  max-width: 800px;
-}
-
 .tree {
   display: grid;
 
   align-items: center;
   justify-items: center;
 
-  gap: 20px;
+  gap: 10px 0px;
 }
 
-p.points {
+.header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.header * {
   margin: 0;
-  text-align: end;
+  font-weight: normal;
+}
+
+.header .points {
   font-size: 24px;
 }
 

@@ -2,19 +2,29 @@
   <wowhead-icon
       *ngFor="let c of classes()"
       [class.active]="selectedClass == c"
+      [class.disabled]="!hasTree(c)"
       [icon]="c.icon"
+      [alt]="c.name"
       (click)="selectedClass = c"
-      ></wowhead-icon>
+    ></wowhead-icon>
 </div>
 
-<div class="select-list">
+<div
+    class="select-list"
+    *ngIf="selectedClass != null">
   <wowhead-icon
-      *ngFor="let spec of specs()"
-      [class.active]="selectedSpec == spec"
+      *ngFor="let spec of specs(selectedClass)"
+      [class.active]="selectedSpec?.id == spec.id"
+      [class.disabled]="!hasTree(spec)"
       [icon]="spec.icon"
+      [alt]="spec.name"
       (click)="selectedSpec = spec"
-      ></wowhead-icon>
+    ></wowhead-icon>
 </div>
 
-<talent-tree *ngIf="selectedTree() != null" [tree]="selectedTree()!">
+<talent-tree
+    *ngIf="selectedTree() != null && selectedSpec?.classId === selectedClass?.id"
+    [tree]="selectedTree()!"
+    [class]="selectedClass!"
+    [spec]="selectedSpec!">
 </talent-tree>
