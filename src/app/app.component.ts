@@ -85,6 +85,8 @@ export class AppComponent {
         this.classes.find(c => c.slug === urlState.klass) ?? null;
     this.selectedSpec = this.specs.find(
         s => s.slug === urlState.spec && s.classId === this.selectedClass!.id)
+        ?? this.classes.map(c => ({...c, classId : c.id}))
+               .find(c => c.slug === urlState.spec)
         ?? null;
   }
 }

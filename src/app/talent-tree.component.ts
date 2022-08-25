@@ -18,6 +18,8 @@ const MARGIN_OVERRIDE: {[id: number]: string} = {
   72 : '0px 0px',
   73 : '0px 8px',
   4 : '0px 0px',
+  12 : '0px 8px',
+  577 : '0px 0px',
 };
 
 @Component({
@@ -48,6 +50,7 @@ export class TalentTreeComponent {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['tree']) {
+      console.debug('Selected tree', this.tree.id);
       this.maxPoints = this.defaultMaxPoints(this.tree);
 
       const selection =
