@@ -6,7 +6,7 @@
         [class.disabled]="!hasTree(c)"
         [icon]="c.icon"
         [alt]="c.name"
-        (click)="selectedClass = c"
+        (click)="selectClass(c)"
       ></wowhead-icon>
   </div>
 
@@ -19,16 +19,16 @@
         [class.disabled]="!hasTree(spec)"
         [icon]="spec.icon"
         [alt]="spec.name"
-        (click)="selectedSpec = spec"
+        (click)="selectSpec(spec)"
       ></wowhead-icon>
   </div>
 
   <talent-tree
-      *ngIf="selectedTree() != null && selectedSpec?.classId === selectedClass?.id"
+      *ngIf="selectedTree() != null"
       [tree]="selectedTree()!"
       [class]="selectedClass!"
-      [spec]="selectedSpec!">
-  </talent-tree>
+      [spec]="selectedSpec!"
+    ></talent-tree>
 </div>
 
 <ng-template #loading>

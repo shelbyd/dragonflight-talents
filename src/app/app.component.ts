@@ -8,6 +8,8 @@ import {
   Talent,
   TalentTree,
 } from './data.service';
+import {Selection} from './tree_solver';
+import {UrlState} from './url_state.service';
 import {maxByKey} from './utils';
 
 @Component({
@@ -25,7 +27,7 @@ export class AppComponent {
   selectedClass: Class|null = null;
   selectedSpec: Spec|null = null;
 
-  constructor(dataService: DataService) {
+  constructor(dataService: DataService, private readonly url: UrlState) {
     dataService.load().then(data => {
       this.specs = data.specs;
       this.classes = data.classes;
@@ -34,6 +36,7 @@ export class AppComponent {
       this.trees.sort((a, b) => a.id - b.id);
 
       this.loaded = true;
+      this.selectFromUrl();
     });
   }
 
@@ -54,5 +57,34 @@ export class AppComponent {
       return null;
 
     return this.trees.find(t => t.id === spec.id) ?? null;
+  }
+
+  selectClass(c: Class) {
+    if (c === this.selectedClass)
+      return;
+
+    this.selectedClass = c;
+    this.selectedSpec = null;
+
+    this.url.setClass(c.slug);
+  }
+
+  selectSpec(s: Spec) {
+    if (s === this.selectedSpec)
+      return;
+
+    this.selectedSpec = s;
+
+    this.url.setSpec(s.slug);
+  }
+
+  private selectFromUrl() {
+    const urlState = this.url.getState();
+
+    this.selectedClass =
+        this.classes.find(c => c.slug === urlState.klass) ?? null;
+    this.selectedSpec = this.specs.find(
+        s => s.slug === urlState.spec && s.classId === this.selectedClass!.id)
+        ?? null;
   }
 }

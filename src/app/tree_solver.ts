@@ -16,6 +16,10 @@ const rework = (window as any).rework = {
   'validity' : new Rework('validity'),
 };
 
+export type Selection = {
+  [node: number]: number
+};
+
 export class TreeSolver {
   private readonly problem: Problem;
   private solution = new PartialSolution();
@@ -23,16 +27,24 @@ export class TreeSolver {
   constructor(
       private readonly maxPoints: number,
       private readonly graph: Graph,
+      selection: Selection = {},
   ) {
     this.problem = new Problem(this.graph, this.maxPoints);
+
+    for (const entry of Object.entries(selection)) {
+      this.solution = this.solution.set(+entry[0], entry[1]);
+    }
+
     const constrained = constrain(this.solution, this.problem);
     if (constrained == null)
       throw new Error('Provided impossible problem');
+
     this.solution = constrained;
   }
 
-  public static fromTree(tree: TalentTree, maxPoints: number): TreeSolver {
-    return new TreeSolver(maxPoints, Graph.fromTree(tree));
+  public static fromTree(tree: TalentTree, maxPoints: number,
+                         selection: Selection): TreeSolver {
+    return new TreeSolver(maxPoints, Graph.fromTree(tree), selection);
   }
 
   public static fromGraph(points: number, graph: TalentGraph): TreeSolver {

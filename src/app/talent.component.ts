@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 
 import {Spell, Talent, TalentType} from './data.service';
+import {UrlState} from './url_state.service';
 import {TreeSolver} from './tree_solver';
 
 @Component({
@@ -25,8 +26,6 @@ export class TalentComponent {
 
   get talent() { return this.talentList[0]; }
 
-  get spell() { return this.talent.spells[0]; }
-
   get talentType() {
     const type = this.talent.type;
     const known = {
@@ -40,13 +39,17 @@ export class TalentComponent {
     return known;
   }
 
-  constructor(readonly element: ElementRef) {}
+  constructor(readonly element: ElementRef, private readonly url: UrlState) {}
 
   showIdOverlay = false;
 
   ngOnInit() {
     const searchParams = new URLSearchParams(window.location.search);
     this.showIdOverlay = searchParams.has('debug');
+
+    if (this.talent.spells.length > 1) {
+      this.selectedIndex = this.url.getState().choices[this.talentId];
+    }
   }
 
   getBackgroundImage(spell: Spell) {
@@ -62,11 +65,17 @@ export class TalentComponent {
   selectSpell(index: number) {
     this.selectedIndex = index;
     this.talentClick.emit({});
+
+    if (this.talent.spells.length > 1) {
+      this.url.setChoice(this.talentId, index);
+    }
   }
 
   clearSpell(index: number) {
     this.selectedIndex = null;
     this.talentClear.emit({});
+
+    this.url.clearChoice(this.talentId);
   }
 
   spellChoices(): Spell[] {

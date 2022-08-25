@@ -10,13 +10,14 @@ import {
 
 import {Class, Spec, TalentTree} from './data.service';
 import {TalentComponent} from './talent.component';
-import {TreeSolver} from './tree_solver';
+import {Selection, TreeSolver} from './tree_solver';
+import {UrlState} from './url_state.service';
 
 const MARGIN_OVERRIDE: {[id: number]: string} = {
-  71: '0px 0px',
-  72: '0px 0px',
-  73: '0px 8px',
-  4: '0px 0px',
+  71 : '0px 0px',
+  72 : '0px 0px',
+  73 : '0px 8px',
+  4 : '0px 0px',
 };
 
 @Component({
@@ -43,11 +44,16 @@ export class TalentTreeComponent {
 
   solver!: TreeSolver;
 
+  constructor(private readonly url: UrlState) {}
+
   ngOnChanges(changes: SimpleChanges) {
     if (changes['tree']) {
-      console.log('this.tree.id', this.tree.id);
       this.maxPoints = this.defaultMaxPoints(this.tree);
-      this.solver = TreeSolver.fromTree(this.tree, this.maxPoints);
+
+      const selection =
+          changes['tree'].firstChange ? this.url.getState().selection : {};
+      this.solver = TreeSolver.fromTree(this.tree, this.maxPoints, selection);
+
       this.showConnectionsAfterTimeout();
       this.calculateColumnAdjustment();
     }
@@ -88,9 +94,27 @@ export class TalentTreeComponent {
 
   gridRow(cell: number): number { return Math.floor(cell / this.columns) + 1; }
 
-  onTalentClick(id: number) { this.solver.trySelect(id); }
+  onTalentClick(id: number) {
+    this.solver.trySelect(id);
+    this.onSelectionChange();
+  }
 
-  onTalentRightClick(id: number) { this.solver.tryUnselect(id); }
+  onTalentRightClick(id: number) {
+    this.solver.tryUnselect(id);
+    this.onSelectionChange();
+  }
+
+  private onSelectionChange() {
+    const selection: Selection = {};
+
+    for (const id of this.solver.nodeIds()) {
+      if (this.solver.isSelected(id)) {
+        selection[id] = this.solver.allocated(id)[0];
+      }
+    }
+
+    this.url.setSelection(selection);
+  }
 
   getElement(talentId: number): ElementRef {
     const el = this.talentElements.find(el => el.talentId === talentId);
@@ -110,7 +134,5 @@ export class TalentTreeComponent {
 
   trackByIndex(i: number): number { return i; }
 
-  margin(): string {
-    return MARGIN_OVERRIDE[this.tree.id] || '0px 16px';
-  }
+  margin(): string { return MARGIN_OVERRIDE[this.tree.id] || '0px 16px'; }
 }
