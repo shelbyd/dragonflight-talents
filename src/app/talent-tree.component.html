@@ -21,9 +21,9 @@
       (talentClick)="onTalentClick(+talentCell.key)"
       (talentClear)="onTalentRightClick(+talentCell.key)"
 
-      [style.gridColumn]="gridColumn(+talentCell.key)"
+      [style.gridColumnStart]="gridColumn(+talentCell.key)"
+      [style.gridColumnEnd]="gridColumn(+talentCell.key) + 2"
       [style.gridRow]="gridRow(+talentCell.key)"
-      [style.margin]="margin()"
       >
   </talent>
 

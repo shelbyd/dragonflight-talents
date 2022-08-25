@@ -8,13 +8,6 @@
   height: 49px;
 }
 
-@media (max-width: 600px) {
-  :host {
-    width: 38px;
-    height: 38px;
-  }
-}
-
 .root {
   position: absolute;
   width: 100%;
@@ -119,4 +112,17 @@ a.tooltip-anchor {
   right: 0;
   bottom: 0;
   z-index: 5;
+}
+
+@media (max-width: 600px) {
+  :host {
+    --size: 34px;
+
+    width: var(--size);
+    height: var(--size);
+  }
+
+  .allocated-points {
+    font-size: 12px;
+  }
 }

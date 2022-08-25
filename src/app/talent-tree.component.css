@@ -23,8 +23,10 @@
 
   align-items: center;
   justify-items: center;
+}
 
-  gap: 10px 0px;
+.tree talent {
+  margin: 20%;
 }
 
 connection {
