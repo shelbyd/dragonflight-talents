@@ -38,3 +38,9 @@ wowhead-icon.disabled {
   pointer-events: none;
   cursor: default;
 }
+
+.help {
+  font-family: Verdana, "Open Sans", Sans;
+
+  max-width: 600px;
+}

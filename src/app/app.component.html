@@ -1,3 +1,7 @@
+<ng-template #loading>
+  <p>Loading...</p>
+</ng-template>
+
 <div class="content" *ngIf="loaded; else loading">
   <div class="select-list">
     <wowhead-icon
@@ -31,6 +35,33 @@
     ></talent-tree>
 </div>
 
-<ng-template #loading>
-  <p>Loading...</p>
-</ng-template>
+<div class="help">
+  <h2>Help</h2>
+
+  <p>
+    This calculator automatically selects and bans talents that are required or inaccessible based on the talents selected. Try selecting a capstone and see what/if anything is required for it.
+  </p>
+
+  <p>Click or tap to add a point to a talent. Right click or longpress to remove a point.</p>
+
+  <p>
+    Because of the difficulty of the calculations, some trees/selections may take a few seconds to calculate.
+  </p>
+
+  <h3>Known Issues</h3>
+
+  <ul>
+    <li>
+      Tooltips don't show on mobile. WowHead's tooltip library does not allow manually showing/hiding tooltips.
+    </li>
+    <li>Selected choice nodes don't look great</li>
+  </ul>
+
+  <h3>Thanks To</h3>
+
+  <ul>
+    <li>
+      <a href="https://www.wowhead.com">WowHead</a>: Tooltips and class/spec data.
+    </li>
+  </ul>
+</div>
