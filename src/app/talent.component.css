@@ -8,6 +8,13 @@
   height: 49px;
 }
 
+@media (max-width: 600px) {
+  :host {
+    width: 38px;
+    height: 38px;
+  }
+}
+
 .root {
   position: absolute;
   width: 100%;

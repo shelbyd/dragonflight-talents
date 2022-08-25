@@ -137,5 +137,5 @@ export class TalentTreeComponent {
 
   trackByIndex(i: number): number { return i; }
 
-  margin(): string { return MARGIN_OVERRIDE[this.tree.id] || '0px 16px'; }
+  margin(): string { return MARGIN_OVERRIDE[this.tree.id]; }
 }
