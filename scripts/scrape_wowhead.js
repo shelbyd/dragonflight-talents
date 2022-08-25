@@ -70,7 +70,7 @@ async function main() {
     classes,
     specs,
     trees,
-  });
+  }, null, 2);
 
   const fs = require('fs');
   fs.writeFileSync('src/assets/data.json', json);
