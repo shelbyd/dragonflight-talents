@@ -11,7 +11,13 @@
 
 app-root {
   font-family: LifeCraft, Verdata, "Open Sans", Sans;
+  font-weight: normal;
+
   color: #ccc;
+}
+
+app-root h1 {
+  font-weight: normal;
 }
 
 body {
