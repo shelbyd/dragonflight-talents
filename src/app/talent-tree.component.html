@@ -16,8 +16,8 @@
   <div
       *ngFor="let cp of tree.checkpoints"
       class="checkpoint"
-      [style.gridRowStart]="cp.row"
-      [style.gridRowEnd]="cp.row + 2"
+      [style.gridRowStart]="cp.row - 1"
+      [style.gridRowEnd]="cp.row + 1"
       [style.gridColumnEnd]="columns + 2">
     <p class="required">
       {{ cp.points }}
