@@ -12,6 +12,18 @@
     class="tree"
     [style.gridTemplateColumns]="columns"
     [style.gridTemplateRows]="rows">
+
+  <div
+      *ngFor="let cp of tree.checkpoints"
+      class="checkpoint"
+      [style.gridRowStart]="cp.row"
+      [style.gridRowEnd]="cp.row + 2"
+      [style.gridColumnEnd]="columns + 2">
+    <p class="required">
+      {{ cp.points }}
+    </p>
+  </div>
+
   <talent
       *ngFor="let talentCell of tree.talents | keyvalue"
       [talentId]="+talentCell.key"

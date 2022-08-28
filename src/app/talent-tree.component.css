@@ -32,3 +32,23 @@
 connection {
   z-index: -1;
 }
+
+.checkpoint {
+  display: flex;
+  align-items: center;
+  position: relative;
+
+  border: 1px dashed darkgreen;
+  width: 100%;
+
+  grid-column-start: 1;
+
+  z-index: -2;
+}
+
+.checkpoint .required {
+  position: absolute;
+  left: calc(100% + 10px);
+  margin: 0;
+  font-size: 18px;
+}

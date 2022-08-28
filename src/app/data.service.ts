@@ -9,9 +9,9 @@ export class DataService {
     const json = await response.json();
 
     return {
-      trees: json.trees,
-      specs: json.specs,
-      classes: json.classes,
+      trees : json.trees,
+      specs : json.specs,
+      classes : json.classes,
     };
   }
 }
@@ -28,7 +28,12 @@ export interface TalentTree {
 
   talents: {
     [cell: number]: Talent[],
-  }
+  };
+
+  checkpoints: Array<{
+    row: number;
+    points: number;
+  }>;
 }
 
 export interface Talent {
