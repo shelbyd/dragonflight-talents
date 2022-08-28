@@ -54,3 +54,9 @@ export function maxByKey<T, K extends Ord>(ts: T[], getKey: (t: T) => K): T|null
 
   return max;
 }
+
+export function randomSample<T>(ts: T[]): T|null {
+  if (ts.length === 0) return null;
+
+  return ts[Math.floor(Math.random() * ts.length)];
+}

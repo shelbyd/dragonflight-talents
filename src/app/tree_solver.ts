@@ -2,7 +2,7 @@ import {Memoize} from 'typescript-memoize';
 
 import {Talent, TalentTree} from './data.service';
 import {Rework} from './development_support';
-import {ordRev, sortByKey} from './utils';
+import {ordRev, randomSample, sortByKey} from './utils';
 
 type Selected = Map<number, number>;
 type Validity = 'valid'|'invalid'|'incomplete';
@@ -170,7 +170,6 @@ export class Graph {
     return reachable.size;
   }
 
-  @Memoize()
   prune(pruneId: number): Graph {
     const result: TalentGraph = {};
     const recursePrune = [];
@@ -233,7 +232,6 @@ export class Problem {
     return result;
   }
 
-  @Memoize()
   without(id: number): Problem {
     return new Problem(this.graph.prune(id), this.points);
   }
@@ -356,16 +354,15 @@ export class Problem {
       return missing;
     }
 
-    return this.hintConstrainOrder(ps)[0] ?? null;
+    return randomSample(
+        this.graph.nodeIds.filter(n => ps.getPoints(n) === null));
   }
 
   hintConstrainOrder(ps: PartialSolution): number[] {
     const empty = this.graph.nodeIds.filter(n => ps.getPoints(n) === null);
     return sortByKey(empty, (n) => {
       return [
-        ps.optionsFor(n, this).length,
-        this.graph.weight(n),
-        ordRev(n),
+        ps.unexploredFor(n, this).length,
       ];
     });
   }
@@ -527,39 +524,45 @@ export function constrain(
     ): PartialSolution|null {
   let result = ps;
 
-  while (true) {
+  let toCheck = problem.hintConstrainOrder(ps);
+  let checked = [];
+
+  while (toCheck.length > 0) {
+    const node = toCheck.shift()!;
+    checked.push(node);
+
     const origResult = result;
 
-    for (const node of problem.hintConstrainOrder(ps)) {
-      const toExplore = result.unexploredFor(node, problem);
+    for (const explore of result.unexploredFor(node, problem)) {
+      const clone = result.clone();
+      clone.infer(node, explore);
 
-      for (const explore of toExplore) {
-        const clone = result.clone();
-        clone.infer(node, explore);
-
-        const solution = findSolution(clone, problem);
-        if (solution == null) {
-          const set = result.setInvalid(node, explore, problem);
+      const solution = findSolution(clone, problem);
+      if (solution == null) {
+        const set = result.setInvalid(node, explore, problem);
+        if (set == null)
+          return null;
+        result = set;
+      } else {
+        for (const node of problem.graph.nodeIds) {
+          const p = solution.getPoints(node);
+          if (p == null)
+            continue;
+          const set = result.setValid(node, p, problem);
           if (set == null)
             return null;
           result = set;
-        } else {
-          for (const node of problem.graph.nodeIds) {
-            const p = solution.getPoints(node);
-            if (p == null)
-              continue;
-            const set = result.setValid(node, p, problem);
-            if (set == null)
-              return null;
-            result = set;
-          }
         }
       }
     }
 
-    if (result === origResult)
-      return result;
+    if (result !== origResult) {
+      toCheck = problem.hintConstrainOrder(result);
+      checked = [];
+    }
   }
+
+  return result;
 }
 
 export function findSolution(ps: PartialSolution,

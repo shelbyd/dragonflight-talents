@@ -52,6 +52,7 @@ export class TalentTreeComponent {
             const start = window.performance.now();
             const result = constrain();
             const end = window.performance.now();
+            console.log(`Constrained tree in ${Math.ceil(end - start)}ms`);
             this.analytics.treeConstrain(end - start, this.tree.id);
             return result;
           });
