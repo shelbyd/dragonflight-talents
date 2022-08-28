@@ -2,19 +2,20 @@ import {Memoize} from 'typescript-memoize';
 
 import {Talent, TalentTree} from './data.service';
 import {Rework} from './development_support';
-import {ordRev, randomSample, sortByKey} from './utils';
+import {maxByKey, minByKey, ordRev, randomSample, sortByKey} from './utils';
 
 type Selected = Map<number, number>;
-type Validity = 'valid'|'invalid'|'incomplete';
+
+type Validity = {
+  v: 'valid'
+}|{v : 'invalid'}|{v : 'incomplete', reason : IncompleteReason};
+type IncompleteReason = 'not_enough_points'|'missing_required_full';
+
 type ConstrainWrapper<R> = (constrain: () => R) => R;
 
 const rework = (window as any).rework = {
-  'required' : new Rework('required'),
-  'allocate' : new Rework('allocate'),
-  'allocateAmount' : new Rework('allocateAmount'),
-  'reachable' : new Rework('reachable'),
-  'emplace' : new Rework('emplace'),
   'validity' : new Rework('validity'),
+  'constrain' : new Rework('constrain'),
 };
 
 export type Selection = {
@@ -232,54 +233,50 @@ export class Problem {
     return result;
   }
 
+  @Memoize()
   without(id: number): Problem {
     return new Problem(this.graph.prune(id), this.points);
   }
 
   validity(ps: PartialSolution): Validity {
     if (!this.couldPlaceEnoughPoints()) {
-      rework['validity'].touch('not_enough_points');
-      return 'invalid';
+      rework['validity'].touch('could_not_place_enough');
+      return {v : 'invalid'};
+    }
+
+    if (this.minPointsFulfillingRequired(ps) > this.points) {
+      rework['validity'].touch('requires_too_many_points');
+      return {v : 'invalid'};
     }
 
     const allPointsInProblem = ps.allocated().every(
         ([ id, amount ]) => amount === 0 || this.graph.has(id));
     if (!allPointsInProblem) {
       rework['validity'].touch('points_have_been_removed');
-      return 'invalid';
-    }
-
-    const overAssigned = this.graph.nodeIds.some(id => {
-      const node = this.graph.get(id);
-      return (ps.getPoints(id) || 0) > node.points;
-    });
-    if (overAssigned) {
-      rework['validity'].touch('over_assigned');
-      return 'invalid';
-    }
-
-    if (this.minPointsFulfillingRequired(ps) > this.points) {
-      rework['validity'].touch('requires_too_many_points');
-      return 'invalid';
+      return {v : 'invalid'};
     }
 
     const p = this.partialValidity(ps);
-    if (p !== 'valid') {
-      rework['validity'].touch('invalid_partial');
+    if (p.v !== 'valid') {
+      if (p.v === 'incomplete') {
+        rework['validity'].touch(p.reason);
+      } else {
+        rework['validity'].touch('invalid_partial');
+      }
       return p;
     }
 
     const missingPoints = this.points - this.totalPoints(ps);
     if (missingPoints > 0) {
-      rework['validity'].touch('missing_placed_points');
-      return 'incomplete';
+      rework['validity'].touch('not_enough_points');
+      return {v : 'incomplete', reason : 'not_enough_points'};
     } else if (missingPoints < 0) {
-      rework['validity'].touch('too_many_placed_points');
-      return 'invalid';
+      rework['validity'].touch('too_many_points');
+      return {v : 'invalid'};
     }
 
     rework['validity'].touch('valid');
-    return 'valid';
+    return {v : 'valid'};
   }
 
   @Memoize()
@@ -310,52 +307,64 @@ export class Problem {
   }
 
   private partialValidity(ps: PartialSolution): Validity {
-    let anyIncomplete = false;
+    let anyIncomplete = null;
     for (const n of this.graph.nodeIds) {
       const v = this.incomingValidity(n, ps);
-      if (v === 'invalid')
+      if (v.v === 'invalid')
         return v;
-      anyIncomplete = anyIncomplete || v === 'incomplete';
+      if (v.v === 'incomplete') {
+        anyIncomplete = v;
+      }
     }
 
-    return anyIncomplete ? 'incomplete' : 'valid';
+    return anyIncomplete || {v : 'valid'};
   }
 
   private incomingValidity(id: number, ps: PartialSolution): Validity {
     const node = this.graph.get(id);
     if (node.requires.length === 0)
-      return 'valid';
+      return {v : 'valid'};
 
     const nodePoints = ps.getPoints(id) || 0;
     if (nodePoints === 0)
-      return 'valid';
+      return {v : 'valid'};
 
     let anyIncomplete = false;
     for (const r of node.requires) {
       const p = ps.getPoints(r);
       if (p === this.graph.get(r).points)
-        return 'valid';
+        return {v : 'valid'};
       anyIncomplete = anyIncomplete || p === null;
     }
 
-    return anyIncomplete ? 'incomplete' : 'invalid';
+    return anyIncomplete ? {v : 'incomplete', reason : 'missing_required_full'}
+                         : {v : 'invalid'};
   }
 
   private totalPoints(ps: PartialSolution): number {
     return this.graph.nodeIds.map(n => ps.getPoints(n) ?? 0).reduce((acc, v) => acc + v, 0);
   }
 
-  searchHint(ps: PartialSolution): number|null {
-    const missingInc = this.graph.nodeIds.find(
-        n => this.incomingValidity(n, ps) === 'incomplete');
-    if (missingInc != null) {
-      const missing = this.graph.get(missingInc)
-                          .requires.find(n => ps.getPoints(n) === null)!;
-      return missing;
-    }
+  searchHint(ps: PartialSolution, reason: IncompleteReason): number|null {
+    switch (reason) {
+    case 'missing_required_full':
+      const missingInc = this.graph.nodeIds.find(
+          n => this.incomingValidity(n, ps).v === 'incomplete')!;
+      return this.graph.get(missingInc)
+          .requires.find(n => ps.getPoints(n) === null)!;
 
-    return randomSample(
-        this.graph.nodeIds.filter(n => ps.getPoints(n) === null));
+    case 'not_enough_points':
+      const valid = this.graph.nodeIds.filter(n => ps.getPoints(n) === null);
+      return maxByKey(valid, (n) => {
+        return [
+          ordRev(ps.optionsFor(n, this).length),
+          // ps.unexploredFor(n, this).length,
+          // Math.floor(Math.random() * 4),
+          // ps.optionsFor(n, this).length,
+          (n),
+        ];
+      });
+    }
   }
 
   hintConstrainOrder(ps: PartialSolution): number[] {
@@ -363,6 +372,7 @@ export class Problem {
     return sortByKey(empty, (n) => {
       return [
         ps.unexploredFor(n, this).length,
+        n,
       ];
     });
   }
@@ -524,7 +534,7 @@ export function constrain(
     ): PartialSolution|null {
   let result = ps;
 
-  let toCheck = problem.hintConstrainOrder(ps);
+  let toCheck = problem.hintConstrainOrder(result);
   let checked = [];
 
   while (toCheck.length > 0) {
@@ -540,10 +550,12 @@ export function constrain(
       const solution = findSolution(clone, problem);
       if (solution == null) {
         const set = result.setInvalid(node, explore, problem);
+        rework['constrain'].touch('invalid');
         if (set == null)
           return null;
         result = set;
       } else {
+        let numberSet = 0;
         for (const node of problem.graph.nodeIds) {
           const p = solution.getPoints(node);
           if (p == null)
@@ -551,8 +563,10 @@ export function constrain(
           const set = result.setValid(node, p, problem);
           if (set == null)
             return null;
+          if (set !== result) numberSet += 1;
           result = set;
         }
+        rework['constrain'].touch(`valid_${numberSet}`);
       }
     }
 
@@ -568,15 +582,14 @@ export function constrain(
 export function findSolution(ps: PartialSolution,
                              problem: Problem): PartialSolution|null {
   const validity = problem.validity(ps);
-  switch (validity) {
+  let incompleteReason;
+  switch (validity.v) {
   case 'valid':
     return ps;
   case 'invalid':
     return null;
   case 'incomplete':
-    break;
-  default:
-    throw new Error(`Unhandled validity ${validity}`);
+    incompleteReason = validity.reason;
   }
 
   const withoutZeros = problem.graph.nodeIds.filter(n => ps.getPoints(n) === 0)
@@ -585,7 +598,7 @@ export function findSolution(ps: PartialSolution,
     return findSolution(ps, withoutZeros);
   }
 
-  const checkNode = problem.searchHint(ps);
+  const checkNode = problem.searchHint(ps, incompleteReason);
   if (checkNode == null)
     return null;
 

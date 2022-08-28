@@ -8,7 +8,7 @@ import {
   Talent,
   TalentTree,
 } from './data.service';
-import {Selection} from './tree_solver';
+import {Selection, TreeSolver} from './tree_solver';
 import {UrlState} from './url_state.service';
 import {maxByKey} from './utils';
 
@@ -37,6 +37,10 @@ export class AppComponent {
 
       this.loaded = true;
       this.selectFromUrl();
+
+      if (window.location.hostname === 'localhost') {
+        this.debugInitialTreeConstrain();
+      }
     });
   }
 
@@ -88,5 +92,37 @@ export class AppComponent {
         ?? this.classes.map(c => ({...c, classId : c.id}))
                .find(c => c.slug === urlState.spec)
         ?? null;
+  }
+
+  private async debugInitialTreeConstrain() {
+    const timings: any[] = [];
+
+    for (const klass of this.classes) {
+      for (const spec of this.specsFor(klass)) {
+        console.log('klass.name, spec.name', klass.name, spec.name);
+
+        const tree = this.trees.find(t => t.id === spec.id)!;
+        TreeSolver.fromTree(tree, spec.id <= 13 ? 31 : 30, {}, (constrain) => {
+          const start = window.performance.now();
+          const result = constrain();
+          const end = window.performance.now();
+
+          const timing = {
+            class : klass.name,
+            spec : spec.name,
+            constrainedIn : Math.ceil(end - start),
+          };
+          console.log('timing', timing);
+          timings.push(timing);
+
+          return result;
+        });
+        await new Promise(r => setTimeout(r, 0));
+      }
+    }
+
+    console.table(timings);
+    (window as any).rework['validity'].report();
+    (window as any).rework['constrain'].report();
   }
 }

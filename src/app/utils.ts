@@ -1,4 +1,4 @@
-type Ord = number|OrdRev<Ord>|[Ord]|[Ord, Ord]|[Ord, Ord, Ord];
+type Ord = boolean|number|OrdRev<Ord>|[Ord]|[Ord, Ord]|[Ord, Ord, Ord];
 
 export function sortByKey<T, K extends Ord>(ts: T[],
                                             keyGetter: (t: T) => K): T[] {
@@ -14,14 +14,22 @@ export function compare<T extends Ord>(a: T, bTyped: T): number {
     return -compare(a.t, b.t);
   }
 
-  if (typeof a === 'number') {
+  if (typeof a === 'boolean') {
+    return a === b ? 0 : !a ? -1 : 1;
+  } else if (typeof a === 'number') {
     return a - b;
   }
 
   if (Array.isArray(a)) {
-    return range(a.length)
-        .map(i => [a[i], b[i]])
-        .reduce((cmp, [ a, b ]) => cmp === 0 ? compare(a, b) : cmp, 0);
+    for (let i = 0; i < a.length; i++) {
+      const aV = a[i];
+      const bV = b[i];
+      const cmp = compare(aV, bV);
+      if (cmp !== 0)
+        return cmp;
+    }
+
+    return 0;
   }
 
   throw new Error(`Unrecognized Ord type: ${typeof a}`);
@@ -33,12 +41,12 @@ export class OrdRev<T> {
   constructor(readonly t: T) {}
 }
 
-export function range(n: number): number[] {
-  return [...new Array(n).keys() ];
-}
+export function range(n: number): number[] { return [...new Array(n).keys() ]; }
 
-export function maxByKey<T, K extends Ord>(ts: T[], getKey: (t: T) => K): T|null {
-  if (ts.length === 0) return null;
+export function maxByKey<T, K extends Ord>(ts: T[], getKey: (t: T) => K): T|
+    null {
+  if (ts.length === 0)
+    return null;
 
   let max = ts[0];
   let maxKey = getKey(max);
@@ -55,8 +63,14 @@ export function maxByKey<T, K extends Ord>(ts: T[], getKey: (t: T) => K): T|null
   return max;
 }
 
+export function minByKey<T, K extends Ord>(ts: T[], getKey: (t: T) => K): T|
+    null {
+  return maxByKey(ts, (t) => ordRev(getKey(t)));
+}
+
 export function randomSample<T>(ts: T[]): T|null {
-  if (ts.length === 0) return null;
+  if (ts.length === 0)
+    return null;
 
   return ts[Math.floor(Math.random() * ts.length)];
 }
