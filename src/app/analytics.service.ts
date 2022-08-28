@@ -10,8 +10,10 @@ export class Analytics {
 
   public treeConstrain(millis: number, treeId: number) {
     this.gtag('event', 'tree_constrain', {
-      'duration_ms': millis,
-      'tree_id': treeId,
+      'event_category': 'performance',
+      'event_label': 'tree_constrain',
+      'value': Math.ceil(millis),
+      'tree_id': treeId.toString(),
     });
   }
 }
