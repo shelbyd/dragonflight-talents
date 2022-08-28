@@ -563,7 +563,8 @@ export function constrain(
           const set = result.setValid(node, p, problem);
           if (set == null)
             return null;
-          if (set !== result) numberSet += 1;
+          if (set !== result)
+            numberSet += 1;
           result = set;
         }
         rework['constrain'].touch(`valid_${numberSet}`);
@@ -603,7 +604,8 @@ export function findSolution(ps: PartialSolution,
     return null;
 
   const opts = ps.optionsFor(checkNode, problem);
-  for (const opt of opts) {
+  const mostPointsFirst = sortByKey(opts, o => ordRev(o));
+  for (const opt of mostPointsFirst) {
     const clone = ps.clone();
     clone.infer(checkNode, opt);
     const s = findSolution(clone, problem);
