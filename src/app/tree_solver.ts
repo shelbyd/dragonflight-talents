@@ -354,16 +354,7 @@ export class Problem {
           .requires.find(n => ps.getPoints(n) === null)!;
 
     case 'not_enough_points':
-      const valid = this.graph.nodeIds.filter(n => ps.getPoints(n) === null);
-      return maxByKey(valid, (n) => {
-        return [
-          ordRev(ps.optionsFor(n, this).length),
-          // ps.unexploredFor(n, this).length,
-          // Math.floor(Math.random() * 4),
-          // ps.optionsFor(n, this).length,
-          (n),
-        ];
-      });
+      return this.graph.nodeIds.find(n => ps.getPoints(n) === null) ?? null;
     }
   }
 
