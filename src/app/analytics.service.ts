@@ -9,10 +9,21 @@ export class Analytics {
   }
 
   public treeConstrain(millis: number, treeId: number) {
+    const timeToText = [
+      [30, 'instant'],
+      [100, 'fast'],
+      [300, 'ok'],
+      [1000, 'slow'],
+      [Infinity, 'unusable'],
+    ];
+
+    const timeText = timeToText.find(entry => millis <= entry[0])?.[1] ?? 'unknown';
+
     this.gtag('event', 'tree_constrain', {
       'event_category': 'performance',
       'event_label': 'tree_constrain',
-      'value': Math.ceil(millis),
+      'value': timeText,
+      'millis': Math.ceil(millis),
       'tree_id': treeId.toString(),
     });
   }
