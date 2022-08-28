@@ -6,6 +6,7 @@ import {ordRev, sortByKey} from './utils';
 
 type Selected = Map<number, number>;
 type Validity = 'valid'|'invalid'|'incomplete';
+type ConstrainWrapper<R> = (constrain: () => R) => R;
 
 const rework = (window as any).rework = {
   'required' : new Rework('required'),
@@ -28,6 +29,8 @@ export class TreeSolver {
       private readonly maxPoints: number,
       private readonly graph: Graph,
       selection: Selection = {},
+      private readonly wrapConstrain:
+          ConstrainWrapper<PartialSolution|null> = (fn) => fn(),
   ) {
     this.problem = new Problem(this.graph, this.maxPoints);
 
@@ -35,7 +38,8 @@ export class TreeSolver {
       this.solution = this.solution.set(+entry[0], entry[1]);
     }
 
-    const constrained = constrain(this.solution, this.problem);
+    const constrained =
+        this.wrapConstrain(() => constrain(this.solution, this.problem));
     if (constrained == null)
       throw new Error('Provided impossible problem');
 
@@ -43,8 +47,11 @@ export class TreeSolver {
   }
 
   public static fromTree(tree: TalentTree, maxPoints: number,
-                         selection: Selection): TreeSolver {
-    return new TreeSolver(maxPoints, Graph.fromTree(tree), selection);
+                         selection: Selection,
+                         wrapConstrain: ConstrainWrapper<PartialSolution|null>):
+      TreeSolver {
+    return new TreeSolver(maxPoints, Graph.fromTree(tree), selection,
+                          wrapConstrain);
   }
 
   public static fromGraph(points: number, graph: TalentGraph): TreeSolver {
@@ -72,7 +79,8 @@ export class TreeSolver {
 
   private trySet(id: number, value: number): boolean {
     const adjusted = this.solution.set(id, value);
-    const constrained = constrain(adjusted, this.problem);
+    const constrained =
+        this.wrapConstrain(() => constrain(adjusted, this.problem));
     if (constrained != null) {
       this.solution = constrained;
       return true;

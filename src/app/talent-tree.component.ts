@@ -8,6 +8,7 @@ import {
   ViewChildren
 } from '@angular/core';
 
+import {Analytics} from './analytics.service';
 import {Class, Spec, TalentTree} from './data.service';
 import {TalentComponent} from './talent.component';
 import {Selection, TreeSolver} from './tree_solver';
@@ -37,7 +38,7 @@ export class TalentTreeComponent {
 
   solver!: TreeSolver;
 
-  constructor(private readonly url: UrlState) {}
+  constructor(private readonly url: UrlState, private readonly analytics: Analytics) {}
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['tree']) {
@@ -46,7 +47,14 @@ export class TalentTreeComponent {
 
       const selection =
           changes['tree'].firstChange ? this.url.getState().selection : {};
-      this.solver = TreeSolver.fromTree(this.tree, this.maxPoints, selection);
+      this.solver = TreeSolver.fromTree(
+          this.tree, this.maxPoints, selection, (constrain) => {
+            const start = window.performance.now();
+            const result = constrain();
+            const end = window.performance.now();
+            this.analytics.treeConstrain(end - start, this.tree.id);
+            return result;
+          });
 
       this.showConnectionsAfterTimeout();
     }
@@ -64,9 +72,7 @@ export class TalentTreeComponent {
     return isClassTree ? 31 : 30;
   }
 
-  gridColumn(cell: number): number {
-    return cell % this.columns + 1;
-  }
+  gridColumn(cell: number): number { return cell % this.columns + 1; }
 
   gridRow(cell: number): number { return Math.floor(cell / this.columns) + 1; }
 
