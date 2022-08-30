@@ -6,4 +6,6 @@ npm install
 
 node scripts/scrape_wowhead.js > netlify/wowhead_data.json
 
-ng build
+ng build \
+  --configuration production \
+  dragonflight-talents
