@@ -1,5 +1,12 @@
 const {getData} = require('../scrape_wowhead.js');
-const {readFile} = require('fs');
+
+let fromFile;
+try {
+  fromFile = require('../wowhead_data.json');
+  console.log('Pre-loaded cache from file');
+} catch (e) {
+  console.error(e);
+}
 
 class Cached {
   // null | Promise<Data> | Data;
@@ -50,17 +57,8 @@ class Cached {
   }
 
   async loadData() {
-    if (!this.cached) {
-      try {
-        const file = await new Promise(
-            (resolve, reject) =>
-                readFile('netlify/wowhead_data.json',
-                         (err, file) => err ? reject(err) : resolve(file)));
-        console.log('Loaded cache from file');
-        return [ JSON.parse(file), new Date() ];
-      } catch (e) {
-        console.error(e);
-      }
+    if (!this.cached && fromFile != null) {
+      return [fromFile, new Date()];
     }
 
     console.log('Scraping WowHead');
