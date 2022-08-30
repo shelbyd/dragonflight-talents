@@ -1,11 +1,13 @@
 import {Injectable} from '@angular/core';
 
+import {environment} from '../environments/environment';
+
 const page = "https://www.wowhead.com/beta/talent-calc";
 
 @Injectable({providedIn : 'root'})
 export class DataService {
   async load(): Promise<Data> {
-    const response = await fetch("/assets/data.json");
+    const response = await fetch(`${environment.apiBase}/.netlify/functions/getData`);
     const json = await response.json();
 
     return {
