@@ -61,8 +61,14 @@ class Cached {
       return [fromFile, new Date()];
     }
 
-    console.log('Scraping WowHead');
-    return [ await getData(), new Date(new Date().valueOf() + 1000 * 60 * 60) ];
+    try {
+      console.log('Scraping WowHead');
+      return [ await getData(), new Date(new Date().valueOf() + 1000 * 60 * 60) ];
+    } catch (e) {
+      console.error(e);
+      if (fromFile != null) return [fromFile, new Date()];
+      throw new Error('Failed to load data and did not have backup file');
+    }
   }
 }
 
