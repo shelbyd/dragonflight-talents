@@ -1,3 +1,5 @@
+require('node-fetch');
+
 const WH = {
   pageData : {},
   setPageData(k, v) { WH.pageData[k] = v; },
