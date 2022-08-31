@@ -8,6 +8,8 @@ try {
   console.error(e);
 }
 
+const cacheFor = 1000 * 60 * 10;
+
 class Cached {
   // null | Promise<Data> | Data;
   cached = null;
@@ -58,15 +60,16 @@ class Cached {
 
   async loadData() {
     if (!this.cached && fromFile != null) {
-      return [fromFile, new Date()];
+      return [ fromFile, new Date() ];
     }
 
     try {
       console.log('Scraping WowHead');
-      return [ await getData(), new Date(new Date().valueOf() + 1000 * 60 * 60) ];
+      return [ await getData(), new Date(new Date().valueOf() + cacheFor) ];
     } catch (e) {
       console.error(e);
-      if (fromFile != null) return [fromFile, new Date()];
+      if (fromFile != null)
+        return [ fromFile, new Date() ];
       throw new Error('Failed to load data and did not have backup file');
     }
   }
@@ -80,8 +83,8 @@ exports.handler = async (event) => {
   return {
     statusCode : 200,
     body : JSON.stringify(data),
-    headers: {
-      'Access-Control-Allow-Origin': '*',
+    headers : {
+      'Access-Control-Allow-Origin' : '*',
     },
   };
 };
