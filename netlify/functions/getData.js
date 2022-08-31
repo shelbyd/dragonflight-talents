@@ -53,10 +53,6 @@ class Cached {
   }
 
   async loadData() {
-    if (!this.cached && fromFile != null) {
-      return [ fromFile, new Date() ];
-    }
-
     try {
       console.log('Scraping WowHead');
       return [ await getData(), new Date(new Date().valueOf() + cacheFor) ];
