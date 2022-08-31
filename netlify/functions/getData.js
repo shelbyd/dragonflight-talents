@@ -38,8 +38,9 @@ class Cached {
   }
 
   async refresh() {
-    if (this.isRefreshing)
+    if (this.isRefreshing && this.cached instanceof Promise) {
       return await this.cached;
+    }
 
     console.log('Beginning cache refresh');
     this.isRefreshing = true;
@@ -52,7 +53,7 @@ class Cached {
     this.cached = loaded[0];
     this.expiresAt = loaded[1];
 
-    console.log(`Cache refresh finished, expires at ${this.expiresAt}`);
+    console.log(`Cache refresh finished, expires in ${this.expiresAt - new Date()}ms`);
 
     this.isRefreshing = false;
     return this.cached;
@@ -67,9 +68,12 @@ class Cached {
       console.log('Scraping WowHead');
       return [ await getData(), new Date(new Date().valueOf() + cacheFor) ];
     } catch (e) {
+      console.error('Scraping WowHead failed');
       console.error(e);
-      if (fromFile != null)
+      if (fromFile != null) {
+        console.log('Backing up with file');
         return [ fromFile, new Date() ];
+      }
       throw new Error('Failed to load data and did not have backup file');
     }
   }
