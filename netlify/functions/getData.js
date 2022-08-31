@@ -26,14 +26,7 @@ class Cached {
     if (cacheValid)
       return this.cached;
 
-    if (this.cached) {
-      console.log('Cache expired, refreshing, but returning cached');
-      this.refresh();
-
-      return await this.cached;
-    }
-
-    console.log('No cached value, awaiting refresh');
+    console.log('Cache expired, awaiting refresh');
     return await this.refresh();
   }
 
