@@ -38,7 +38,7 @@ exports.getData = async function() {
   const body = await fetchText("https://www.wowhead.com/beta/talent-calc");
 
   const trees = (await loadData(extractUrl(
-      'talents-dragonflight', body)))['wow.talentCalcDragonflight.trees'];
+      'talents-dragonflight', body)))['wow.talentCalcDragonflight.beta.trees'];
 
   await loadData(extractUrl('data/global', body));
 
